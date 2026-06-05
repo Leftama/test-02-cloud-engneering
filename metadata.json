@@ -1,0 +1,6 @@
+{
+  "name": "Cloud Integration Exam Simulator",
+  "description": "Simulador interactivo de examen para la vacante de Cloud Integration Engineer, diseñado con enfoque de misión crítica en Kubernetes, Ansible, Networking, OpenStack, Terraform, Linux y GitOps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

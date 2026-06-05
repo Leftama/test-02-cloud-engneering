@@ -1,0 +1,1555 @@
+import { Question } from "./types";
+
+export const QUESTION_BANK: Question[] = [
+  // ==========================================
+  // KUBERNETES AVANZADO (20 preguntas: ID 1-20)
+  // ==========================================
+  {
+    id: 1,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Un Pod crítico de procesamiento en cola entra en bucle 'CrashLoopBackOff' de manera intermitente. Notas que el contenedor principal requiere cargar un archivo de configuración de 500MB de una API externa antes de levantar el servicio. ¿Cuál es el enfoque arquitectónico óptimo para resolver esto sin aumentar la tolerancia de los Readiness Probes?",
+    codeSnippet: `apiVersion: v1
+kind: Pod
+metadata:
+  name: queue-processor
+spec:
+  containers:
+  - name: processor
+    image: queue-worker:loki-v2
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080`,
+    options: [
+      "Configurar un 'Init Container' que realice la descarga del archivo en un volumen 'emptyDir' compartido, aislando la fase de preparación del ciclo de vida del contenedor principal.",
+      "Incrementar los parámetros 'initialDelaySeconds' y 'failureThreshold' del Readiness Probe a valores elevados (p. ej., 600 segundos).",
+      "Asociar un 'Liveness Probe' con comando 'sleep 600' para retrasar el chequeo del proceso de inicio.",
+      "Migrar el Pod a un StatefulSet para garantizar el orden de descarga y usar almacenamiento persistente de clase 'Standard'."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El uso de Init Containers es un patrón fundamental en Kubernetes para separar tareas de inicialización (como descargar configuraciones pesadas) de la ejecución de la aplicación. Al utilizar un volumen compartido 'emptyDir', el contenedor principal se inicia sólo cuando la inicialización termina exitosamente, evitando sobrecargar las probes y manteniendo el arranque limpio."
+  },
+  {
+    id: 2,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "Durante un despliegue masivo con Helm, observas el error 'Forbidden: pod updates may not change fields other than...'. Estás actualizando un Deployment que expone un puerto dinámico. ¿Cuál es la causa raíz de este error en Kubernetes?",
+    codeSnippet: "# Error devuelto en kubectl describe release\nError: UPGRADE FAILED: cannot patch \"web-service\" with kind Deployment...",
+    options: [
+      "Helm intentó modificar un campo inmutable en la especificación del Pod, como los selectores de etiquetas (spec.selector) o el volumen 'emptyDir'.",
+      "La versión del API ('apiVersion: apps/v1') ya no está soportada por el nodo master del clúster actual.",
+      "El ServiceAccount asociado al Deployment carece de roles RBAC para ejecutar el verbo 'patch' en Recursos del Core API.",
+      "No se definió el campo 'strategy.type: RollingUpdate' y por defecto Helm asume 'Recreate' bloqueando los puertos en uso."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "En la API de Kubernetes, ciertos campos en los recursos son inmutables después de la creación. Por ejemplo, en los Deployments, el campo 'spec.selector' es inmutable. Si se intenta actualizar dicho selector en un template de Helm, la API rechazará la petición de tipo 'patch'. La solución comúnmente requiere borrar y recrear el recurso o versionar bajo otro nombre."
+  },
+  {
+    id: 3,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "Necesitas definir una política de aprovisionamiento de almacenamiento que permita liberar automáticamente la memoria física en la SAN de NetApp subyacente cuando se eliminen los PersistentVolumeClaims (PVCs). ¿Qué parámetro y valor de StorageClass debes configurar?",
+    codeSnippet: `apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: netapp-iscsi
+provisioner: cs.netapp.io
+reclaimPolicy: <VALOR>
+volumeBindingMode: Immediate`,
+    options: [
+      "reclaimPolicy: Delete",
+      "reclaimPolicy: Recycle",
+      "reclaimPolicy: Retain",
+      "reclaimPolicy: Purge"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La directiva 'reclaimPolicy: Delete' le indica al aprovisionador dinámico CSI (o Kubernetes) que cuando un PVC asociado sea eliminado, el recurso físico correspondiente en la cabina de almacenamiento (SAN/NAS) debe destruirse de inmediato, liberando los bloques físicos."
+  },
+  {
+    id: 4,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Tienes un microservicio de misión crítica que experimenta latencias elevadas debido a que el recolector de basura (GC) de Java realiza pausas repentinas. Sospechas problemas de CPU throttling a pesar de que el uso promedio reportado es del 40%. ¿Cuál es el diagnóstico correcto del CFS (Completely Fair Scheduler) de Linux en Kubernetes?",
+    options: [
+      "El contenedor está configurado con límites de CPU ('resources.limits.cpu') muy bajos, lo que causa que el kernel de Linux estrangule (throttle) los hilos del proceso al consumir su cuota en milisegundos cortos dentro del periodo de tiempo del CFS.",
+      "La métrica de 'resources.requests.cpu' está ausente, lo que asigna automáticamente el Pod a la clase de servicio 'BestEffort', impidiendo su uso de CPU multinúcleo.",
+      "El kernel del nodo carece de cgroups v2, impidiendo la distribución equitativa de ciclos a lo largo de los cores físicos disponibles.",
+      "La JVM no detecta los limitadores nativos del contenedor y asume el total de recursos del nodo físico, disparando hilos de GC de forma descontrolada."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El estrangulamiento de CPU (CPU throttling) ocurre con frecuencia en Kubernetes debido a los límites estrictos del CFS en el kernel de Linux. La cuota se mide en ventanas rígidas (usualmente de 100ms). Si una ráfaga de actividad de Java consume la cuota asignada en los primeros 15ms, el proceso se congela los restantes 85ms, provocando picos de latencia desastrosos aunque el promedio general sea bajo."
+  },
+  {
+    id: 5,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "En un despliegue de alta disponibilidad, se requiere que los pods de una base de datos distribuida nunca se ubiquen en el mismo nodo físico para mitigar fallos de hardware en el hipervisor. ¿Qué configuración YAML modela este requerimiento de forma mandatoria?",
+    codeSnippet: `affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - distributed-db
+      topologyKey: "kubernetes.io/hostname"`,
+    options: [
+      "La especificación con 'requiredDuringSchedulingIgnoredDuringExecution' y del topologyKey 'kubernetes.io/hostname'.",
+      "La configuración con 'preferredDuringSchedulingIgnoredDuringExecution' para permitir flexibilidad en caso de sobrecarga técnica.",
+      "Establecer la directiva 'nodeName' de forma secuencial en un patrón de inicio manual.",
+      "El uso exclusivo de 'Tolerations' apuntando a 'NoSchedule' de los nodos maestros."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'requiredDuringSchedulingIgnoredDuringExecution' define una regla dura (hard affinity/anti-affinity) que se debe cumplir obligatoriamente para planificar el Pod. Utilizar 'podAntiAffinity' con esta directiva y 'topologyKey: kubernetes.io/hostname' garantiza que ningún par de pods con la etiqueta app=distributed-db ruede sobre el mismo nodo físico."
+  },
+  {
+    id: 6,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "¿Qué ocurre con una conexión TCP existente cuando un Pod de entrada es marcado como 'Terminating' durante un proceso de Rolling Update?",
+    options: [
+      "El pod pasa a estado 'Terminating' y se remueve de forma asíncrona de los endpoints del Service. Las conexiones activas permanecen abiertas hasta que el contenedor expire según la directiva 'terminationGracePeriodSeconds' o el cliente cierre la sesión.",
+      "El kube-proxy interrumpe inmediatamente el tráfico enviando una trama TCP RST para evitar inconsistencias en el backend.",
+      "El controlador de Ingress remite de inmediato las tramas activas a los nuevos Pods mediante encapsulamiento IP-in-IP dinámico.",
+      "El Pod se destruye de inmediato de la memoria del kernel del host sin importar las transacciones de entrada pendientes."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Cuando un pod se marca en terminación, entra en su periodo de gracia. Al mismo tiempo es removido de los Endpoints del Service para no recibir tráfico nuevo. Las conexiones TCP antiguas siguen activas para permitirles finalizar su procesamiento de forma suave (graceful shutdown) hasta que se agote 'terminationGracePeriodSeconds' (por defecto 30s), momento en el cual se envía SIGKILL."
+  },
+  {
+    id: 7,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Estás diseñando una estrategia de despliegue Zero-Downtime para una aplicación de banca transaccional donde las bases de datos de sesión residen localmente en memoria. ¿Qué táctica de ciclo de vida del Pod es obligatoria para garantizar la persistencia del tráfico activo durante el apagado de un nodo maestro?",
+    codeSnippet: `lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 15"]`,
+    options: [
+      "Implementar un hook 'preStop' con retraso artificial ('sleep') para permitir la sincronización del estado y dar tiempo a que los agentes de red (como el Ingress Controller) propaguen la remoción de la IP del pod en sus tablas.",
+      "Utilizar un 'livenessProbe' que apunte al puerto del balanceador local de red.",
+      "Reducir el 'terminationGracePeriodSeconds' a 0 segundos para forzar una conmutación ultra-rápida de tráfico.",
+      "Establecer políticas globales 'HorizontalPodAutoscaler' basadas en latencia de red en milisegundos."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "A menudo existe una carrera de hilos interna en Kubernetes: la señal SIGTERM se envía al pod al mismo tiempo que las APIs de red actualizan las tablas de enrutamiento/Endpoints del Service. Para evitar enviar clientes a un pod en fase de apagado, un hook 'preStop' que inserte un 'sleep 10-15s' mantiene el contenedor aceptando llamadas residuales mientras el plano de control completa la remoción de sus endpoints correspondientes."
+  },
+  {
+    id: 8,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "Al depurar un clúster con problemas de contención de recursos, descubres que varios Pods huérfanos asumen cuotas ilimitadas de memoria de forma silenciosa, tumbando nodos del clúster con errores OOM-Killer. ¿Cómo limitas por defecto y de forma transparente el consumo para nuevos espacios de nombres en el clúster (Namespaces)?",
+    options: [
+      "Configurar un recurso de tipo 'LimitRange' en cada Namespace para asignar automáticamente límites ('limits') y peticiones ('requests') de CPU y memoria por defecto a cualquier Pod que se cree sin especificaciones explícitas.",
+      "Asociar una cuota estática global vía 'ResourceQuota' que limite el conteo total de hilos de sistema a nivel del hipervisor del kernel.",
+      "Escribir una política avanzada de admisión adaptativa utilizando Open Policy Agent (OPA) que invalide la creación de cualquier Pod huérfano.",
+      "Establecer parámetros 'overcommit' a nivel de los configuradores Kubelet de forma persistente."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'LimitRange' es el objeto de Kubernetes diseñado específicamente para establecer límites mínimos, máximos y por defecto para contenedores creados dentro de un espacio de nombres específico. Si un Pod no especifica límites, heredará los valores configurados por defecto en el LimitRange, protegiendo al clúster de abusar de la memoria del nodo."
+  },
+  {
+    id: 9,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Estás creando un chart de Helm personalizado para desplegar una aplicación compuesta por múltiples microservicios con dependencias mutuas de inicialización. Necesitas asegurar que una migración de base de datos se ejecute exclusivamente y por completo antes de desplegar el backend principal de la aplicación. ¿Qué recurso es la mejor práctica de la arquitectura nativa en Kubernetes/Helm?",
+    options: [
+      "Definir el script de migración como un recurso 'Job' de Kubernetes etiquetado con la directiva pre-install de los hooks de Helm ('helm.sh/hook: pre-install').",
+      "Agregar un sleep estructurado de 3 minutos dentro de la sección de scripts de inicio de la imagen del backend.",
+      "Definir un contenedor de inicio con roles privilegiados del sistema montando de forma síncrona el volumen de base de datos.",
+      "Utilizar un operador dinámico de reconciliación que automatice la secuenciación de los deployments basándose en variables externas de etcd."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los hooks de Helm (por ejemplo, 'helm.sh/hook: pre-install') permiten al desarrollador intervenir en puntos específicos del ciclo de vida de un despliegue. Configurar un Job con este hook garantiza que la migración se ejecutará de forma síncrona y exitosa antes de levantar el resto de los componentes incluidos en el chart de Helm."
+  },
+  {
+    id: 10,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "¿Qué papel juega el puerto sin cabeza (Headless Service) en el despliegue de bases de datos altamente disponibles basadas en 'StatefulSets' como PostgreSQL o Redis?",
+    codeSnippet: `apiVersion: v1
+kind: Service
+metadata:
+  name: pg-headless
+spec:
+  clusterIP: None # <-- ¿Qué implica esto?
+  selector:
+    app: postgres`,
+    options: [
+      "Permite al DNS interno de CoreDNS resolver entradas individuales directas de tipo 'A' (por ejemplo, pod-0.pg-headless) que apuntan a la dirección IP individual de cada Pod con identidad única, esencial para la replicación maestra/esclava.",
+      "Deshabilita por completo la capa IPTables/IPVS del clúster acelerando un 50% las conexiones síncronas de red interna.",
+      "Previene la configuración automática del balanceador externo cloud, eliminando costos innecesarios en entornos de simulación.",
+      "Forza a los pods a consumir una única IP estática interna dentro del rango CIDR principal del clúster de Kubernetes."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Un Headless Service (definido mediante 'clusterIP: None') no actúa como balanceador con una sola IP de clúster. En su lugar, el DNS del clúster devuelve directamente las direcciones IP individuales de los Pods seleccionados. Para un StatefulSet, esto crea registros DNS deterministas (nodo-0.servicio, nodo-1.servicio), habilitando a los motores de bases de datos a encontrarse mutuamente y establecer clusters de réplica."
+  },
+  {
+    id: 11,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "Un deployment de sucursales externas expone fallas de lectura tras cambiar la versión de la base de datos distribuida de pruebas. Notas que el volumen físico usa AWS EBS gp3 y reportas el error 'VolumeInUse' de manera persistente en Kubernetes. ¿Qué opción describe la causa técnica?",
+    options: [
+      "El volumen físico usa el modo 'ReadWriteOnce' (RWO) y Kubernetes intenta levantar el nuevo Pod en un nodo físico diferente antes de que el pod anterior en el nodo antiguo haya sido desmontado y destruido por completo.",
+      "La política de eliminación del PV (ReclaimPolicy) se cambió de forma aleatoria a 'Recycle', impidiendo que se mueva la persistencia de discos.",
+      "El nodo del clúster carece del agente DaemonSet de EBS CSI, lo que interrumpe la sincronización lógica del cifrado del volumen de AWS.",
+      "La cuota de ancho de banda IOPS del volumen tipo gp3 superó los límites permitidos, lo que provoca que el hipervisor bloquee el montaje."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "ReadWriteOnce (RWO) limita el montaje de un PersistentVolume a un único nodo a la vez. Cuando ocurre un despliegue RollingUpdate, Kubernetes típicamente arranca el nuevo pod antes de apagar el anterior. Si el planificador sitúa el nuevo pod en un nodo físico distinto, la cabina cloud bloquea el montaje con el error de 'volume in use' ya que el pod antiguo del otro nodo sigue reteniéndolo."
+  },
+  {
+    id: 12,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Durante la sobrecarga de un clúster secundario de procesamiento, observas que varios pods de aplicaciones no transaccionales 'Node-Agent' mueren con errores 'OOMKilled', mientras que otros pods críticos para el negocio siguen sanos. ¿Cómo determina Kubernetes internamente la prioridad de desalojo en escenarios de escasez de memoria física?",
+    options: [
+      "Kubernetes utiliza la clase QoS (Quality of Service) del pod determinada por las declaraciones de 'resources' (Guaranteed, Burstable, BestEffort) y su puntuación 'oom_score_adj' asociada en el Host de Linux.",
+      "A través del conteo de horas de vida útil (Uptime) del pod, desalojando siempre los pods más antiguos primero.",
+      "Mediante algoritmos heurísticos que evalúan la latencia de red y suspenden de inmediato los que acumulen mayor pérdida de tramas.",
+      "A través de una regla FIFO (First-In-First-Out) administrada directamente por el kube-scheduler en el plano de control principal."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Kubernetes asigna una clase QoS según las solicitudes y límites de CPU/Memoria: 'Guaranteed' (requests coinciden exactamente con limits), 'Burstable' (requests menores que limits) y 'BestEffort' (no define requests ni limits). En caso de estrés de memoria, el kernel OOM-killer calcula la puntuación basado en el cgroup 'oom_score_adj', devorando primero los pods de la clase 'BestEffort' y luego los 'Burstable'."
+  },
+  {
+    id: 13,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "Deseas desplegar una aplicación web que requiere leer archivos confidenciales con llaves SSL de la API de Kubernetes de manera altamente cifrada y no permanente. ¿Qué recurso almacena nativamente este activo en memoria de estado volátil dentro del contenedor?",
+    options: [
+      "Secret",
+      "ConfigMap",
+      "PersistentVolume",
+      "StorageClass"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los 'Secrets' están específicamente orientados a almacenar información de naturaleza crítica y confidencial (ej. llaves SSL, contraseñas, tokens). Al montarse como volumen en los contenedores, Kubernetes utiliza sistemas temporales basados en RAM ('tmpfs'), evitando almacenar estos datos directamente en el disco duro o almacenamiento no volátil del host."
+  },
+  {
+    id: 14,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "¿Qué componente de Kubernetes se encarga de interceptar y evaluar todas las solicitudes de la API REST de control antes de almacenar los recursos en la base de datos distribuida persistente (etcd)?",
+    options: [
+      "Admission Controllers (Mutating and Validating Admission Webhooks)",
+      "kube-scheduler",
+      "Kubelet Daemon",
+      "kube-proxy"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los 'Admission Controllers' interceptan las solicitudes enviadas al servidor API de Kubernetes (kube-apiserver) justo después de la autenticación y autorización del cliente, pero antes de guardar la información en etcd. Se componen de fases Mutating (para mutar y adecuar configuraciones) y Validating (para validar políticas)."
+  },
+  {
+    id: 15,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Un clúster bare-metal expone alta pérdida de rendimiento en su capa de red interna. Se sospecha una mala configuración del MTU en la red CNI subyacente. ¿Cuál es el diagnóstico en entornos donde la infraestructura física utiliza tramas Jumbo (MTU 9000) e interfaces encapsuladas con VXLAN (como Calico)?",
+    options: [
+      "El MTU dentro de la interfaz virtual de los pods ('cali*') debe configurarse con al menos 50 bytes menos que la interfaz física física (p. ej., MTU 8950), para dar cobertura a la cabecera del encapsulado VXLAN de red genérica.",
+      "Calico deshabilita automáticamente el enrutamiento inter-nodo cuando se activan tramas Jumbo, exigiendo MTU estáticos rígidos de 1500.",
+      "La interfaz de bucle de retorno de Ethernet exige una sincronización síncrona manual con el DNS de CoreDNS.",
+      "Es obligatorio migrar todas las IP del kernel ruteadoras a direcciones de red estáticas no encapsuladas Clase B."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Cuando se utiliza encapsulado de red como VXLAN en una CNI (por ejemplo, Calico o Flannel), la cabecera de encapsulación añade un overhead (sobrecosto) típicamente de 50 bytes sobre el paquete original IP. Si la red física soporta tramas de tipo 9000, los interfaces virtuales de red dentro del pod deben tener un MTU máximo de 8950 para asegurar que los paquetes no se fragmenten a nivel IP, reduciendo de inmediato la pérdida de rendimiento."
+  },
+  {
+    id: 16,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "Quieres realizar una actualización manual y granular de la base de datos de control etcd para mitigar riesgos de seguridad. ¿Cuál es el estado y tratamiento recomendado para los servicios de Kubernetes durante el mantenimiento total de las réplicas de etcd?",
+    options: [
+      "El plano de control de Kubernetes (kube-apiserver) pierde temporalmente la capacidad de procesar nuevas solicitudes de cambio de estado de la API, pero los contenedores existentes en ejecución siguen funcionando de forma ininterrumpida y enrutando tráfico de red local.",
+      "El servicio Kubernetes destruye de inmediato todos los procesos de aplicación y reinicia forzosamente la red general de nodos del clúster.",
+      "Los nodos marcados como 'Workers' de forma asíncrona se auto-escalan de inmediato simulando un reinicio nativo de hardware.",
+      "El DNS de CoreDNS asume la persistencia primaria de etcd cacheando las tramas físicas pendientes en la pila."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "etcd es la base de datos de estado para el clúster. Si todos los endpoints de etcd dejan de funcionar, el Kube-APIServer no podrá mutar recursos ni modificar configuraciones, sin embargo, los pods en ejecución alojados en los workers seguirán corriendo y enrutando tráfico local, puesto que el Kubelet de cada nodo retiene localmente el estado de sus contenedores."
+  },
+  {
+    id: 17,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "Un Pod que monta una ruta confidencial mediante el driver Secrets Store CSI reporta el error 'MountVolume.SetUp failed for volume... mount failed: exit status 1'. ¿Cómo aíslas la falla arquitectónica primaria de este ecosistema?",
+    options: [
+      "Confirmar que el conector externo (Provider) del Vault/AWS/GCP/Azure respectivo está instalado en el Namespace correspondiente, y verificar los roles e identidades lógicas vía IAM/ServiceAccount (OIDC/IRSA o Workload Identity).",
+      "Deshabilitar SELinux y AppArmor de forma persistente en todos los nodos trabajadores de Kubernetes.",
+      "Modificar el tamaño de RAM asignado al daemon de Kubelet a valores mínimos de 16GB.",
+      "Cambiar la versión del driver CSI local de regreso a rutas de almacenamiento no autenticadas."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El driver de Secrets Store CSI requiere un proveedor independiente (como gcp, aws o vault) que realice la interacción real para extraer los secretos. Si la autenticación IAM del ServiceAccount (por ejemplo, OIDC/Workload Identity en el pod) falla, o el proveedor específico no está respondiendo en su puerto, el proceso de montaje en el Kubelet fallará impidiendo la inicialización."
+  },
+  {
+    id: 18,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "La configuración de tu ingress controller requiere implementar enrutamiento basado en la ruta ('/v2/api') y al mismo tiempo mitigar ataques de denegación de servicio (DDoS) controlando un máximo de 10 paquetes asíncronos por IP por segundo. ¿Qué campo/anotación permite inyectar esta regla en el Ingress nativo?",
+    codeSnippet: `apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: secured-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/limit-connections: "..." # <-- ¿Qué anotar?`,
+    options: [
+      "nginx.ingress.kubernetes.io/limit-rps: \"10\"",
+      "ingress.kubernetes.io/rate-limiting: \"true\"",
+      "kubernetes.org/ddos-protection: \"high\"",
+      "nginx.org/connections-bypass-rate: \"10\""
+    ],
+    correctAnswerIndex: 0,
+    explanation: "En la arquitectura usando NGINX Ingress Controller, la anotación 'nginx.ingress.kubernetes.io/limit-rps' (o limit-rpm) limita la tasa de peticiones entrantes por segundo por dirección IP del cliente remitiendo de manera inmediata errores HTTP 503 a los atacantes locales."
+  },
+  {
+    id: 19,
+    category: "Kubernetes Avanzado",
+    difficulty: "Senior",
+    question: "¿Qué directiva define la política de actualización de un Helm Chart para garantizar que las solicitudes no destructivas persistan, preservando la precedencia de recursos manuales en el clúster sin forzar parches repetidos en el API Server?",
+    options: [
+      "Usar el comando 'helm upgrade' con la bandera '--cleanup-on-fail' para limpiar de inmediato los recursos fallidos o huérfanos.",
+      "Configurar la especificación externa 'replace-resources-flow' de YAML en rutas locales de sincronización.",
+      "Deshabilitar los validadores de esquema JSON en templates lógicas de carga.",
+      "Redefinir todas las etiquetas del Ingress a rutas exclusivas sin balanceadores."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "--cleanup-on-fail durante 'helm upgrade' interviene de forma inteligente si la actualización actual falla, removiendo artefactos creados por ese intento que comprometan la consistencia de infraestructuras preexistentes."
+  },
+  {
+    id: 20,
+    category: "Kubernetes Avanzado",
+    difficulty: "Architect",
+    question: "¿Cuál es el beneficio de consolidar políticas de 'topologySpreadConstraints' en un despliegue multi-zona de Kubernetes?",
+    codeSnippet: `topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels:
+      app: web-server`,
+    options: [
+      "Permite distribuir los Pods de forma homogénea a lo largo de las distintas zonas de disponibilidad físicas (p. ej., us-east-1a, us-east-1b), balanceando el riesgo ante caídas completas de un centro de datos físico.",
+      "Garantiza el enrutamiento exclusivo por interfaces de red de fibra óptica submarina entre nodos geográficos.",
+      "Desactiva los balanceadores DNS acoplando dinámicamente las réplicas en clústeres hiperconvergentes.",
+      "Oculta la topología de la VPC evitando auditorías externas de seguridad forense."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'topologySpreadConstraints' controla precisamente cómo se distribuyen los pods a través de dominios de falla físicos (nodos, zonas, regiones) utilizando la llave de topología (topologyKey). Con 'maxSkew: 1' y 'whenUnsatisfiable: DoNotSchedule', Kubernetes garantiza que la diferencia numérica de pods de la misma aplicación entre las distintas zonas de disponibilidad nunca sea mayor que uno, logrando resiliencia total."
+  },
+
+  // ==========================================
+  // ANSIBLE AVANZADO (15 preguntas: ID 21-35)
+  // ==========================================
+  {
+    id: 21,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Necesitas referenciar la dirección IP interna asignada al host de control dentro de un playbook dinámico de Ansible sin realizar resolución DNS externa. ¿Qué variable mágica (magic variable) expone este valor nativo?",
+    options: [
+      "ansible_default_ipv4.address",
+      "ansible_host_control_ip",
+      "ansible_local_address",
+      "localhost.ipv4.address"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Ansible recopila información del host (system facts) de forma automatizada mediante el módulo 'gather_facts'. La información de red nativa se almacena estructurada de manera jerárquica en un mapa de datos donde 'ansible_default_ipv4.address' representa la dirección IP IPv4 predeterminada del clúster de red bajo control."
+  },
+  {
+    id: 22,
+    category: "Ansible Avanzado",
+    difficulty: "Architect",
+    question: "Estás estructurando un rol de Ansible empresarial y deseas aislar las variables de configuración genéricas de aquellas que representan llaves privadas de producción cifradas con Ansible Vault. El estándar de la industria exige mantener Playbooks altamente portables. ¿Cuál es el orden de jerarquía y ubicación nativa recomendada en el rol?",
+    codeSnippet: `my-enterprise-role/
+├── defaults/
+│   └── main.yml
+├── vars/
+│   └── main.yml
+└── vault.yml (Cifrado)`,
+    options: [
+      "Declarar los parámetros parametrizables por el usuario en 'defaults/main.yml' (baja prioridad de sobrescritura), y las variables internas o privadas cifradas en 'vars/main.yml' o un archivo incluido de variables con mayor prioridad estructural.",
+      "Almacenar todas las llamadas en 'defaults/main.yml', ya que este directorio es el único que acumula prioridad sobre los parámetros pasados por línea de comandos.",
+      "Garantizar que todo el rol se encapsule en un único archivo plano agregando firmas base64 codificadas en el kernel del host.",
+      "Omitir el uso de herencia de roles e inyectar scripts inline para cada una de las invocaciones del playbook principal."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El estándar limpio para el desarrollo de roles en Ansible prescribe situar los defaults genéricos en 'defaults/main.yml' (prioridad baja, fácilmente redefinida por el usuario que invoque el rol), mientras que las variables críticas fijas, de conexión, o protegidas por Vault deben ubicarse en 'vars/main.yml' o importarse dinámicamente, asegurando que su precedencia interna sea respetada ante variables residuales."
+  },
+  {
+    id: 23,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Quieres optimizar sensiblemente el tiempo de ejecución de un playbook que interactúa con 300 servidores bare-metal en paralelo de manera asíncrona. Estás utilizando bucles avanzados y descartas la recolección redundante de Facts si no cambia de servidores. ¿Qué declaración optimiza esta velocidad?",
+    codeSnippet: `- hosts: all
+  gather_facts: false # <-- Paso 1
+  strategy: free # <-- Paso 2`,
+    options: [
+      "Configurar 'gather_facts: false' y establecer el parámetro de estrategia de ejecución en 'strategy: free' en el playbook.",
+      "Limitar el tamaño del buffer nativo de SSH aumentando 'timeout: 5' de forma paralela.",
+      "Migrar todos los controladores de red del host a configuradores estáticos serializados.",
+      "Cambiar el intérprete interno de Python en Ansible de regreso a versiones obsoletas de la rama v2.7."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Por defecto, Ansible procesa las tareas bloqueando hilos de ejecución de manera lineal nodo por nodo (estrategia linear). Configurar 'strategy: free' desenlaza a los hosts individuales de esperar la finalización global del grupo, ejecutando secuencialmente cada host el playbook tan rápido como le sea posible. Deshabilitar los Facts con 'gather_facts: false' remueve el overhead inicial de SSH por completo de la comunicación."
+  },
+  {
+    id: 24,
+    category: "Ansible Avanzado",
+    difficulty: "Architect",
+    question: "¿Cómo soluciona un equipo de DevOps el reto de aprovisionar infraestructura dinámica en entornos de nube como OpenStack o AWS, donde el número y las IPs de las máquinas cambia de manera continua sin poder definir un archivo '/etc/ansible/hosts' estático?",
+    options: [
+      "Implementando un script/plugin de Inventario Dinámico (Dynamic Inventory Plugin) que interactúa con la API del proveedor de la nube de forma transparente recopilando los datos de red en formato JSON.",
+      "Configurando una rutina programada en cron que re-escriba archivos planos de hosts locales cada 15 segundos.",
+      "Utilizando DNS dinámico exclusivo (DDNS) acoplado a sockets unix proxy que redirigen los puertos de SSH del nodo maestro.",
+      "Flasheando una IP de multidifusión (Multicast) en el bus corporativo LAN de comunicación local."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los inventarios dinámicos consisten en plugins o scripts autoejecutables que consultan en tiempo real la API del proveedor de cloud (Nova de OpenStack, AWS EC2, etc.) devolviendo un listado ordenado por etiquetas, tipos de instancia, redes y zonas en formato JSON compatible con Ansible, suprimiendo la administración de complejas listas estáticas IP."
+  },
+  {
+    id: 25,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Al utilizar variables complejas en Ansible, te encuentras con un conflicto de precedencia de variables. ¿Cuál de las siguientes ubicaciones posee el mayor orden de prioridad para sobrescribir cualquier otra variable declarada en Ansible?",
+    options: [
+      "Variables pasadas por línea de comandos utilizando la bandera '-extra-vars' (o '-e')",
+      "Variables declaradas en el inventario estático a nivel de servidor ('host_vars')",
+      "Variables declaradas en los bloques de tareas de playbook ('play vars')",
+      "Mensajes heredados por defecto desde herencias del rol preconfigurado ('role defaults')"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Ansible tiene un modelo de precedencia muy estricto de más de 20 niveles. Las variables declaradas mediante '-extra-vars' (o la opción '-e') en la terminal de comandos siempre ocupan el rango supremo y sobrescriben cualquier otra definición previa."
+  },
+  {
+    id: 26,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Para orquestar un reinicio programado ordenado de clústeres de base de datos distribuidos, debes garantizar que las tareas se ejecuten un nodo a la vez para evitar caídas de quorum en el servicio. ¿Qué directiva controla esta velocidad en Ansible?",
+    codeSnippet: `- hosts: database_servers
+  serial: 1 # <-- ¿Qué implica esto?
+  tasks:
+  - name: Reboot node
+    reboot:`,
+    options: [
+      "serial: 1",
+      "max_fail_percentage: 0%",
+      "parallel: false",
+      "throttle: node"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La directiva 'serial' permite definir cuántos hosts en paralelo debe manejar Ansible a la vez para un bloque de tareas determinado. Al configurar 'serial: 1', la automatización se aplica nodo por nodo en secuencial, reduciendo dramáticamente el riesgo de caídas de servicio por fallas de quorum físico y asegurando transiciones suaves."
+  },
+  {
+    id: 27,
+    category: "Ansible Avanzado",
+    difficulty: "Architect",
+    question: "Deseas modular el despliegue de múltiples entornos (Desarrollo, QA, Producción) dentro de un mismo ecosistema de Ansible para mitigar errores de despliegue sobre entornos equivocados. ¿Cuál es el enfoque organizativo de mejores prácticas?",
+    options: [
+      "Crear un subdirectorio con inventarios separados ('inventories/dev/', 'inventories/production/') con sus respectivos archivos y variables asociadas 'group_vars' y 'host_vars', invocándolos explícitamente vía '-i'.",
+      "Definir todas las variables en variables globales del sistema del nodo maestro Ansible.",
+      "Emplear un único playbook inmutable y filtrar por puertos lógicos usando sentencias condicionales 'when: target_port == 22'.",
+      "Configurar contraseñas exclusivas SSH para cada servidor obligando a los operadores a recordar los mapeos."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Dividir la infraestructura en directorios separados de inventario ('inventories/dev', 'inventories/prod') separa lógicamente los hosts y sus configuraciones específicas de forma inmutable. Esto es mantenible, reduce el alcance del error humano y permite invocar el ambiente ideal con '-i inventories/dev/hosts'."
+  },
+  {
+    id: 28,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Necesitas almacenar un token sensitivo de Vault de manera in-situ dentro de las variables de un repositorio Git público sin comprometer su seguridad. ¿Qué herramienta nativa de Ansible debes usar para codificar este valor de forma reversible sólo por la clave de descifrado autorizada?",
+    options: [
+      "ansible-vault encrypt_string",
+      "gpg --encrypt",
+      "ansible-kms-secure",
+      "openssl genrsa -aes256"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El subcomando 'ansible-vault encrypt_string' permite cifrar una sola cadena de caracteres (o variable) individual en lugar del archivo completo. El output es un bloque de formato YAML estructurado que se puede agregar tranquilamente a cualquier playbook público sin revelar la información de manera legible."
+  },
+  {
+    id: 29,
+    category: "Ansible Avanzado",
+    difficulty: "Architect",
+    question: "Al escribir playbooks avanzados, un patrón clave es que cada paso o tarea se ejecute sólo si el paso anterior generó cambios sustantivos sobre el nodo físico de destino. ¿Qué mecanismo del playbook implementa este patrón asíncrono de eventos?",
+    codeSnippet: `tasks:
+- name: Template VirtualHost configuration
+  template:
+    src: vhost.j2
+    dest: /etc/nginx/sites-available/default
+  notify: Restart Nginx # <-- ¿Qué gatilla esto?
+
+handlers:
+- name: Restart Nginx
+  service:
+    name: nginx
+    state: restarted`,
+    options: [
+      "Utilizar la directiva 'handlers' combinada con la llamada estructural 'notify' sobre la tarea principal.",
+      "Registrar la variable 'register: result' y evaluar de manera repetida 'when: result.changed'.",
+      "Escribir una rutina post-ejecución nativa en el crontab del sistema de almacenamiento.",
+      "Usar disparadores dinámicos condicionales a través de tuberías 'stdout_lines' del kernel."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los 'handlers' son tareas especiales que se ejecutan únicamente si han sido notificadas al final de un 'play' por otra tarea que haya reportado un estado de cambio positivo (state changed). Este es el patrón recomendado para operaciones colaterales como recargar servicios o reiniciar contenedores tras cambios en sus plantillas de configuración."
+  },
+  {
+    id: 30,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Tienes un rol de Ansible que ejecuta tareas pesadas y recurrentes que frecuentemente fallan debido a caídas esporádicas en la resolución DNS. Necesitas configurar un mecanismo de re-intentos automáticos a nivel de la tarea de instalación. ¿Qué directivas YAML solucionan este problema de resiliencia de red?",
+    codeSnippet: `- name: Download package
+  get_url:
+    url: "https://packages.enterprise.internal/pkg.tar.gz"
+    dest: /tmp/
+  register: result
+  until: result is succeeded
+  retries: 5
+  delay: 10`,
+    options: [
+      "Las directivas combinadas 'until', 'retries' y 'delay' aplicadas directamente sobre la tarea.",
+      "Un bloque externo 'rescue' alternando llamadas de reinstalación del proxy estático.",
+      "La bandera '--retry-playbook' en la terminal de ejecución interactiva general.",
+      "Inyectar un bucle manual con 'loop: \"{{ range(1, 5) }}\"' y capturar códigos de salida de shell."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La directiva 'until' de Ansible ejecuta de forma cíclica una tarea hasta que la condición especificada se cumpla. Al añadir 'retries: 5' y 'delay: 10', Ansible reintentará la petición web hasta que no falle, con un intervalo de reposición de 10 segundos entre intentos, ideal para paliar intermitencias físicas de infraestructura."
+  },
+  {
+    id: 31,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "¿Qué propiedad de Ansible asegura que si ejecutas un Playbook idéntico múltiples veces en el mismo nodo, el estado de configuración permanezca intacto y sin provocar efectos secundarios deletéreos ni registrar cambios innecesarios?",
+    options: [
+      "Idempotencia",
+      "Paralelismo Adaptativo",
+      "Sincronismo Transaccional",
+      "Modularidad Homogénea"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La 'Idempotencia' es la piedra angular de Ansible y las herramientas modernas de IaC. Significa que aplicar repetidamente la misma configuración sobre un sistema dará siempre el mismo resultado final, dejando el sistema en su estado deseado sin alterarlo innecesariamente si la configuración ya coincide, reduciendo fallas de redundancia lateral."
+  },
+  {
+    id: 32,
+    category: "Ansible Avanzado",
+    difficulty: "Architect",
+    question: "Durante un despliegue de red sobre nodos de producción, Ansible expone el error 'Timeout: Shared connection to host closed'. Sospechas que la velocidad de copia de plantillas en volumen masivo a través de SFTP es deficiente debido a la autenticación repetida. ¿Qué configuración persistente en 'ansible.cfg' optimiza este rendimiento físico reutilizando túneles SSH activos?",
+    codeSnippet: `[ssh_connection]
+pipelining = True
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s`,
+    options: [
+      "Habilitar 'pipelining = True' para acelerar la transferencia de scripts ejecutables de Python de forma directa en la sesión SSH del host.",
+      "Habilitar de forma obligatoria el cifrado SSL interno de alta velocidad sobre sockets locales.",
+      "Incrementar los hilos de red configurando un proxy alternativo persistente 'http_cache_bypass'.",
+      "Migrar de SFTP a túneles de rsync directos de Linux deshabilitando la autenticación del host primario."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El parámetro de SSH 'pipelining' en Ansible ejecuta el código binario de Python directamente en el flujo SSH de entrada en la memoria sin guardarlo como archivo físico en el disco remoto y transferirlo por SFTP. Esto reduce las operaciones de escritura/lectura y el número de sesiones SSH adicionales, mejorando drásticamente el rendimiento global en playbooks grandes."
+  },
+  {
+    id: 33,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Quieres validar de manera granular la integridad de variables dinámicas críticas de red antes de ejecutar comandos destructivos del playbook. ¿Qué módulo nativo interrumpe inmediatamente el flujo imprimiendo explicaciones coherentes?",
+    options: [
+      "ansible.builtin.assert",
+      "ansible.builtin.fail",
+      "ansible.builtin.print_error",
+      "ansible.builtin.crash"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El módulo 'ansible.builtin.assert' permite aplicar lógica booleana sobre variables configuradas. Si las condiciones evaluadas (especificadas en el bloque 'that') resultan falsas, interrumpe el playbook inmediatamente con un error formateado descriptivo, protegiendo los entornos de fallas en cascada."
+  },
+  {
+    id: 34,
+    category: "Ansible Avanzado",
+    difficulty: "Senior",
+    question: "Al depurar variables en la ejecución de un Playbook, encuentras que una variable 'port' definida en un archivo 'group_vars/all.yml' no está siendo adoptada por el servidor, asumiendo siempre el valor por defecto del rol. ¿Qué explica este comportamiento según la jerarquía de variables?",
+    options: [
+      "La precedencia de las variables declaradas a nivel de rol ('role vars') en 'vars/main.yml' es superior a la declaración genérica de inventario global en 'group_vars/all.yml'.",
+      "Ansible no soporta la herencia de diccionarios en subdirectorios globales.",
+      "Falta inicializar el archivo de configuración con un permiso de ejecución chmod +x nativo.",
+      "La directiva 'gather_facts' sobrescribe de manera automática todas las estructuras locales."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "En la herencia de Ansible, las variables declaradas explícitamente en el directorio de variables del rol ('role vars') en 'vars/main.yml' tienen mayor jerarquía y precedencia que las variables declaradas en los inventarios o en los metadatos globales del grupo 'group_vars/all.yml'."
+  },
+  {
+    id: 35,
+    category: "Ansible Avanzado",
+    difficulty: "Architect",
+    question: "Deseas modular la ejecución de tareas críticas en Ansible de manera que si un host específico falla durante el play de despliegue, el Playbook continúe de forma segura procesando en el resto del clúster de servidores, pero deteniendo el play general si el porcentaje de fallas excede una cuota del 25%. ¿Qué propiedades declaran este comportamiento?",
+    codeSnippet: `- hosts: webservers
+  max_fail_percentage: 25 # <-- ¿Qué declara esto?
+  any_errors_fatal: false`,
+    options: [
+      "La combinación de 'max_fail_percentage: 25' y 'any_errors_fatal: false' en las directivas del playbook.",
+      "Configurar un bloque estructurado con instrucciones 'ignore_errors: true' para cada llamada de sistema.",
+      "Utilizar un monitor externo que envíe peticiones HTTP POST a la API del plano maestro de OpenStack.",
+      "Declarar una variable de control estática 'ansible_tolerance_limits: 0.25' en las variables del host."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Configurar 'max_fail_percentage: 25' a nivel de Play coordinado garantiza que si la tasa acumulada de fallos en el inventario excede el 25% de los sistemas activos, toda la operación global se suspende de inmediato (fail fast), evitando la degradación total de clústeres mientras se protege la consistencia lateral."
+  },
+
+  // ==========================================
+  // VIRTUALIZACIÓN Y OPENSTACK (15 preguntas: ID 36-50)
+  // ==========================================
+  {
+    id: 36,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "En un entorno empresarial que ejecuta virtualización nativa sobre RedHat KVM, deseas convertir eficientemente un volumen de almacenamiento virtual en formato crudo 'raw' a un formato auto-expandible dinámico con soporte para instantáneas (snapshots). ¿Qué comando de QEMU realiza esta operación?",
+    options: [
+      "qemu-img convert -f raw -O qcow2 disk.raw disk.qcow2",
+      "qemu-img create -f qcow2 disk.raw disk.qcow2",
+      "qemu-img resize disk.raw disk.qcow2 -compress",
+      "kvm-convert --type=qcow2 disk.raw disk.qcow2"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando 'qemu-img convert' de la suite QEMU hereda y transforma volúmenes lógicos de almacenamiento virtualizado. Con '-f raw' se dicta el formato original de origen y con '-O qcow2' se obtiene una réplica optimizada comprimida basada en sectores que sólo consume espacio físico de disco a demanda real."
+  },
+  {
+    id: 37,
+    category: "Virtualización y OpenStack",
+    difficulty: "Architect",
+    question: "Para desplegar una base de datos SAP HANA sobre OpenStack de manera que se maximice la latencia de memoria física y se anule el salto de bus físico inter-procesador en servidores multisocket, ¿qué técnica avanzada de planificación debes inyectar en los metadatos de la imagen (Glance image metadata)?",
+    options: [
+      "NUMA Topology and CPU Pinning (hw:cpu_policy=dedicated, hw:numa_nodes=1)",
+      "VPC Peering with OpenStack Neutron virtual switches",
+      "Deshabilitar las extensiones físicas Intel VT-x/AMD-V en Nova",
+      "Asociar el hipervisor en un grupo de tolerancia tipo DVR IPVS"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La optimización NUMA (Non-Uniform Memory Access) unida a la asignación estática de núcleos físicos a hilos vCPU de ejecución (CPU Pinning) mediante Glance/Nova asegura que la instancia de base de datos corra directamente sobre un procesador específico asignado a un banco de memoria físico directo del hardware del hipervisor, eliminando la latencia del bus inter-socket."
+  },
+  {
+    id: 38,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "¿Qué componente fundamental de la arquitectura de OpenStack funciona como el motor principal de orquestación lógica del cómputo y se encarga del aprovisionamiento y gestión de las instancias de máquinas virtuales interactuando con libvirt/KVM?",
+    options: [
+      "Nova",
+      "Neutron",
+      "Glance",
+      "Cinder"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'Nova' es el componente medular de virtualización en OpenStack. Coordina todas las llamadas de la API de aprovisionamiento de cómputo delegado, programando y delegando sobre los hipervisores locales las tareas de emulación física correspondientes mediante drivers consolidados (p. ej., libvirt/KVM)."
+  },
+  {
+    id: 39,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "Quieres realizar una conmutación de red segura (Failover) de almacenamiento virtualizado de producción montado sobre interfaces SAN de red. ¿Qué servicio centralizado de OpenStack gestiona el ciclo de vida y montaje de volúmenes persistentes en bloque de forma integrada?",
+    options: [
+      "Cinder",
+      "Swift",
+      "Manila",
+      "Glance"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'Cinder' es el servicio de almacenamiento en bloques para OpenStack. Expone una API para virtualizar cabinas físicas de almacenamiento (iSCSI, Fibre Channel, Ceph NFS), abstrayendo la creación, montaje, formateo y retención de discos persistentes montados como bloques puros en las VM."
+  },
+  {
+    id: 40,
+    category: "Virtualización y OpenStack",
+    difficulty: "Architect",
+    question: "Durante un pico de solicitudes en un despliegue de telecomunicaciones de baja latencia con NFV sobre OpenStack, se reporta que el tráfico en los conmutadores virtuales locales de Neutron ahoga las vCPUs de los hosts físicos. ¿Qué tecnología de hardware directa salta el pipeline del hipervisor y expone tarjetas físicas de red directamente a la VM?",
+    options: [
+      "SR-IOV (Single Root I/O Virtualization)",
+      "OVS-DPDK (Open vSwitch with Data Plane Development Kit)",
+      "Túneles virtuales VXLAN adaptativos",
+      "VPC Transit Gateway ruteado"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "SR-IOV permite particionar una única interfaz de tarjeta física de red (NIC) PCI-Express en múltiples funciones virtuales lógicas idénticas independientes (VFs). Al mapear una VF directamente al sistema operativo residente de la máquina virtual (guest OS), la VM procesa paquetes IP nativos casi a velocidad de cable física (line-rate) con bypass absoluto del hipervisor."
+  },
+  {
+    id: 41,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "Estás investigando un problema de conectividad de red donde las instancias dentro de OpenStack no obtienen direcciones de red asignadas. Sospechas que fallas lógicas de comunicación en Neutron impiden que los daemons locales sirvan DHCP. ¿Qué componente del host gestiona estas subredes virtuales lógicas?",
+    options: [
+      "Neutron DHCP Agent",
+      "Nova API Gateway Daemon",
+      "Glance Host Router",
+      "Keystone Auth Portal"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El 'Neutron DHCP Agent' utiliza namespaces de red locales del kernel de Linux (qdhcp-*) ejecutando el daemon 'dnsmasq' por cada red virtual creada. Si este agente se cuelga o pierde comunicación, las instancias virtuales no podrán adquirir su configuración IPv4 automática."
+  },
+  {
+    id: 42,
+    category: "Virtualización y OpenStack",
+    difficulty: "Architect",
+    question: "Un operador experimenta inestabilidad física tras migrar en caliente (Live Migration) un host con procesador Intel de última generación a un servidor con hardware antiguo AMD Opteron. ¿Qué configuración física resuelve el bloqueo técnico derivado del set de instrucciones de la CPU?",
+    options: [
+      "Configurar un modelo de CPU unificado genérico ('cpu_mode = custom', 'cpu_model = Penryn' o similar compatible) en el archivo 'nova.conf' para homologar las capacidades de CPU (firmas del microprocesador) antes de coordinar la migración.",
+      "Aumentar el tamaño del socket MTU del enlace de migración a valores de canal Jumbo.",
+      "Ejecutar un script secuencial que compile el hipervisor KVM compilando hilos estáticos nativos en AMD.",
+      "Desactivar OpenStack Keystone protegiendo la identidad con llaves SSH síncronas sin cifrado."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Para realizar una Live Migration en caliente satisfactoria, el hipervisor de origen y de destino de KVM deben presentarle al sistema operativo invitado (guest OS) un set idéntico de instrucciones de silicio. Configurar una plantilla común de CPU compatible en 'nova.conf' previene que la máquina virtual intente ejecutar instrucciones físicas ausentes en el nuevo procesador, evitando kernel panics."
+  },
+  {
+    id: 43,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "¿Qué técnica de virtualización avanzada de KVM permite sobre-asignar (overcommit) recursos de memoria de forma inteligente, posibilitando que el hipervisor recupere bloques de RAM físicos no utilizados por los sistemas operativos invitados?",
+    options: [
+      "Memory Ballooning (KVM Virtio Balloon)",
+      "Kernel Samepage Merging (KSM)",
+      "Procesamiento NUMA Dinámico",
+      "Paginación por Demanda Directa"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Memory Ballooning utiliza un driver interno residente del hipervisor ('virtio_balloon') dentro del sistema operativo invitado. Cuando el hipervisor requiere memoria de vuelta, infla el globo lúdico interno, forzando al kernel del sistema virtualizado a desalojar sus páginas físicas de memoria inactivas para entregarlas al host de hardware."
+  },
+  {
+    id: 44,
+    category: "Virtualización y OpenStack",
+    difficulty: "Architect",
+    question: "Estás diseñando una nube híbrida de misión crítica y necesitas asegurar que el plano de control web de OpenStack y su servicio de orquestación no colapsen por congestión de red lógica en un único router físico centralizado. ¿Qué patrón de enrutamiento de Neutron distribuye las funciones de enrutamiento y NAT a nivel de cada nodo de cómputo individual?",
+    options: [
+      "DVR (Distributed Virtual Routing)",
+      "HA Router con VRRP nativo",
+      "BGP Dynamic Routing Integration",
+      "Neutron Dynamic IP Forwarding"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Distributed Virtual Routing (DVR) elimina el clásico cuello de botella estructural al distribuir las funciones de enrutamiento L3 (enrutamiento este-oeste y norte-sur por IPs flotantes/NAT) a nivel local de cada nodo de cálculo worker. Así, el tráfico inter-instancia dentro de la nube se realiza nodo a nodo de forma descentralizada."
+  },
+  {
+    id: 45,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "¿Qué papel juega el servicio 'Glance' en un despliegue operativo estándar de OpenStack?",
+    options: [
+      "Glance actúa como el registro y repositorio centralizado de imágenes de sistemas operativos y plantillas de discos virtuales necesarios para el aprovisionamiento de cómputo.",
+      "Gestiona las directivas de filtrado de cortafuegos de red virtual (Security Groups).",
+      "Monitorea el uso de recursos energéticos y térmicos en el centro de datos físico.",
+      "Provee autenticación basada en tokens de seguridad para acceder a la API de Nova."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Glance proporciona el catálogo de almacenamiento para guardar y recuperar plantillas virtuales de disco de sistemas operativos (ej. Ubuntu Server cloud image, CentOS RAW, etc.). Es consumido de forma interactiva por Nova durante las operaciones de creación de nuevas instancias lógicas."
+  },
+  {
+    id: 46,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "Quieres auditar el acceso al ecosistema de la nube de OpenStack e implementar autenticación federada SSO de nivel empresarial. ¿Qué servicio unifica el motor de identidades y provisión de tokens de seguridad en esta arquitectura?",
+    options: [
+      "Keystone",
+      "Heat",
+      "Octavia",
+      "Aodh"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Keystone es el componente de gestión de identidad de OpenStack. Proporciona autenticación, autorización y catálogo de endpoints integrados de APIs para todos los servicios de OpenStack, facilitando la integración con políticas corporativas SAML o LDAP/AD."
+  },
+  {
+    id: 47,
+    category: "Virtualización y OpenStack",
+    difficulty: "Architect",
+    question: "Al optimizar el hipervisor KVM para ejecutar bases de datos OLTP intensivas en E/S de disco, notas latencias indeseadas en la virtualización de almacenamiento. ¿Qué driver de E/S nativo de bus de almacenamiento de bajo acoplamiento minimiza este impacto racheteado?",
+    options: [
+      "virtio-blk / virtio-scsi",
+      "IDE emulation driver",
+      "Bus físico SCSI RAID passthrough",
+      "QEMU Standard Floppy Port"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'virtio' (incluyendo virtio-blk y virtio-scsi) es un estándar cooperativo de virtualización donde el sistema operativo invitado conoce activamente la ejecución del hipervisor (paravirtualización). Esto le permite enviar ráfagas masivas de bloques de almacenamiento directamente al host físico sin llamadas caras de interrupción de emulación de hardware."
+  },
+  {
+    id: 48,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "Durante un despliegue automatizado con Terraform sobre OpenStack de alta redundancia, notas errores de tiempo de espera excedidos (timeouts) persistentes al crear interfaces web. El puerto del clúster de seguridad externa de Keystone expone bloqueos. ¿Qué puerto REST estándar asume la gestión central de credenciales JWT/Keystone?",
+    options: [
+      "5000",
+      "8774",
+      "9292",
+      "9696"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El servicio Keystone de autenticación de OpenStack atiende por defecto en el puerto de red TCP 5000 para procesar de forma interactiva llamadas REST de autenticación."
+  },
+  {
+    id: 49,
+    category: "Virtualización y OpenStack",
+    difficulty: "Senior",
+    question: "¿Qué tecnología del procesador físico en la placa madre permite alojar software de hipervisores KVM y ejecutar de forma anidada (Nested Virtualization) sub-instancias lógicas con rendimiento aceptable sobre la nube?",
+    options: [
+      "Extensiones de virtualización por hardware del microprocesador (Intel VT-x / AMD-V)",
+      "Procesamiento lógico Hyper-Threading",
+      "Instrucciones de cifrado masivo AES-NI",
+      "Control integrado del bus térmico en hilos"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Las extensiones directas Intel VT-x y AMD-V posibilitan el soporte de virtualización a nivel de hardware nativo del silicio, permitiendo al sistema de virtualización anidada (Nested) consolidar hipervisores sobre hipervisores sin que el sistema colapse lógicamente."
+  },
+  {
+    id: 50,
+    category: "Virtualización y OpenStack",
+    difficulty: "Architect",
+    question: "Un operador decide aprovisionar almacenamiento compartido distribuido de alta escalabilidad compatible con OpenStack para consolidar datos no estructurados de forma simultánea entre múltiples pods lógicos de Kubernetes y VMs de OpenStack. ¿Qué solución de almacenamiento Open Source unificada es líder indiscutido en la arquitectura Cloud native?",
+    options: [
+      "Ceph (RADOS Block Device & CephFS)",
+      "Amazon Web Services S3 Local Mirror",
+      "Linux Samba Share Daemon",
+      "Docker Local Overlay Mounts"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Ceph es el almacenamiento open-source por excelencia para Kubernetes y OpenStack. Al ofrecer interfaces unificadas de bloques (RBD), objetos (RGW/S3) y ficheros (CephFS) en un clúster desacoplado autogestionado, proporciona redundancia, capacidad de auto-recuperación y escalabilidad masiva."
+  },
+
+  // ==========================================
+  // NETWORKING E INFRAESTRUCTURA (20 preguntas: ID 51-70)
+  // ==========================================
+  {
+    id: 51,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Necesitas diagnosticar la pérdida intermitente de tramas de red entre dos servidores Linux conectados a través de fibra óptica que exponen alta degradación al encapsular tramas. Sospechas problemas de MTU (Maximum Transmission Unit) y necesitas validar si la ruta intermedia fragmenta paquetes. ¿Qué comando alternativo utilizas?",
+    options: [
+      "ping -M do -s 8972 IP_DESTINO",
+      "traceroute -p 443 -d IP_DESTINO",
+      "iptables -A INPUT -p icmp -j REJECT",
+      "ip route get IP_DESTINO --mtu-check"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La bandera '-M do' (o '--dont-fragment' en algunos sistemas) del comando 'ping' instruye al kernel de Linux a levantar la bandera de no fragmentación (Don't Fragment - DF) en el paquete IP. Especificar un payload de tamaño grande como '-s 8972' permite validar si las tramas Jumbo no caben en los switches intermedios, disparando el mensaje 'Frag needed and DF set' en caso de MTU deficitarios."
+  },
+  {
+    id: 52,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "Durante un proceso de mantenimiento, configuras un agregador de enlaces físico de red (LACP / 802.3ad) entre dos interfaces Ethernet en un clúster Linux de telecomunicaciones de misión crítica. La arquitectura física exige balanceo simétrico inteligente de tramas. ¿Qué tipo de bonding de Linux y balanceador de hash de transmisión (xmit_hash_policy) proporciona este comportamiento físico avanzado?",
+    options: [
+      "BONDING_OPTS=\"mode=4 xmit_hash_policy=layer3+4\"",
+      "BONDING_OPTS=\"mode=1 xmit_hash_policy=layer2\"",
+      "BONDING_OPTS=\"mode=0 xmit_hash_policy=round-robin\"",
+      "BONDING_OPTS=\"mode=6 xmit_hash_policy=layer3\""
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El modo 'bonding 4' habilita el protocolo cooperativo estándar IEEE 802.3ad (LACP). Combinado con la política 'xmit_hash_policy=layer3+4', se calcula el hash utilizando tanto la dirección IP como el puerto TCP/UDP origen/destino, lo que mitiga cuellos de botella asegurando una excelente distribución de carga física inter-hilos sin fragmentación."
+  },
+  {
+    id: 53,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Estás configurando un router Linux corporativo interconectando múltiples redes. Notas que las máquinas del segmento de LAN privada (192.168.1.0/24) no pueden acceder a internet pública a través de la interfaz externa (eth0). ¿Qué regla de IPtables debes añadir para habilitar la traducción de direcciones de red (NAT)?",
+    codeSnippet: "# Comando de Linux para configurar NAT\niptables -t nat -A POSTROUTING -o eth0 -j <ACCION>",
+    options: [
+      "MASQUERADE",
+      "DNAT --to-destination 8.8.8.8",
+      "FORWARD --accept-all",
+      "REDIRECT --port-mapping=80"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El objetivo (target) 'MASQUERADE' de la tabla 'nat' en IPTables realiza NAT de origen (Source NAT) de forma dinámica sobre la interfaz de salida, traduciendo de inmediato las direcciones IPs privadas internas de la LAN al rango de la IP pública del ISP en eth0."
+  },
+  {
+    id: 54,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Deseas inspeccionar en tiempo real el tráfico de red de un puerto UDP de control interno de DNS (puerto 53) para aislar posibles ataques internos de inyección en la interfaz lógica eth1. ¿Qué comando filtra y muestra los paquetes correspondientes?",
+    options: [
+      "tcpdump -i eth1 -n udp port 53",
+      "netstat -luntp | grep 53",
+      "wireshark -interface=all -filter=dns",
+      "ip route show dev eth1 | grep 53"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando 'tcpdump' es la herramienta forense nativa de Linux para capturar tramas de red a bajo nivel. Filtros estructurados como '-n' (deshabilita resolución DNS inversa para ganar rendimiento) y 'udp port 53' restringe de inmediato la salida a paquetes UDP de DNS ruidosos."
+  },
+  {
+    id: 55,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "Para lograr alta disponibilidad de IPs flotantes virtuales compartidas entre dos balanceadores de carga redundantes NGINX locales que asumen balanceo virtual IP en infraestructura KVM, ¿qué protocolo y herramienta liviana del kernel implementas?",
+    options: [
+      "VRRP (Virtual Router Redundancy Protocol) mediante 'Keepalived'",
+      "BGP (Border Gateway Protocol) sobre 'Calico Routing Agent'",
+      "IPVS NAT enrutado por proxies manuales en bash",
+      "DNS Round Robin asistido por switches virtuales de Open vSwitch"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Keepalived implementa el estándar abierto de redundancia VRRP (Virtual Router Redundancy Protocol). Dos o más servidores comparten una IP virtual flotante dedicada (VIP). El healthcheck evalúa la salud local del balanceador y, en caso de fallo, reasigna la IP flotante de manera transparente en milisegundos sin desconexión de clientes activos."
+  },
+  {
+    id: 56,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Quieres validar qué interfaz física de red virtual Ethernet está mapeada y encapsulando tráfico de red interna para un Namespace específico de red local en Linux. ¿Qué comando lista e inspecciona namespaces e interfaces asociadas?",
+    options: [
+      "ip netns exec <NAMESPACE_NAME> ip link show",
+      "netns-cli list --namespace=<NAMESPACE_NAME>",
+      "bridge link show dev eth0",
+      "sysctl -a | grep net.ipv4.conf"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "En Linux, los namespaces de red ('netns') aíslan lógicamente la pila de red (interfaces, tablas de enrutamiento, reglas IPTables). Utilizando 'ip netns exec' seguido del nombre del namespace y del comando 'ip link show', se expone la configuración interna real del entorno aislado de red virtual."
+  },
+  {
+    id: 57,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "Estás interconectando hosts físicos bare-metal con switches Cisco Catalyst que distribuyen múltiples segmentos de redes agrupados en VLANs lógicas. Deseas que la interfaz de red interna de Linux (eth0) acepte de manera explícita tráfico etiquetado en la VLAN 100. ¿Qué utilitario nativo de Linux implementas?",
+    codeSnippet: `ip link add link eth0 name eth0.100 type vlan id 100
+ip link set dev eth0.100 up`,
+    options: [
+      "Habilitar una subinterfaz física del kernel mediante la suite 'vlan' en la sintaxis de 'ip link' o archivos de configuración manual.",
+      "Deshabilitar las tablas de enrutamiento de red global inyectando un switch local de software.",
+      "Declarar una regla de IPTables inmutable en la tabla de NAT inyectando sockets DNS.",
+      "Emplear proxies locales de socks sobre puertos HTTP síncronos en modo promiscuo."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Habilitar una subinterfaz lógica asociada a una VLAN específica (tipo eth0.100) en Linux indica al controlador de red del Kernel de Linux que procese y desempaquete el campo de identificación (VLAN ID 100) en las tramas Ethernet estándar 802.1Q que llegan ruteadas desde el switch."
+  },
+  {
+    id: 58,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Al depurar fallas de conmutación de tráfico, descubres que un nodo de producción no rutea paquetes entre sus distintas interfaces locales de red, descartando cualquier trama que no sea para su propia IP. ¿Qué parámetro del kernel de Linux (sysctl) debes habilitar para permitir reenvío de paquetes?",
+    codeSnippet: "# Configuración necesaria para enrutamiento\nsysctl -w <PARAMETRO>=1",
+    options: [
+      "net.ipv4.ip_forward",
+      "net.ipv4.conf.all.forwarding_rules",
+      "net.core.packet_routing_flow",
+      "net.ipv4.tcp_forward_port"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "net.ipv4.ip_forward dictamina de forma explícita al kernel que actúe en capa L3 como router. Si el valor es '0', Linux descartará de inmediato cualquier paquete IPv4 cuya dirección IP de destino no coincida con una IP local asignada a sus propias interfaces físicas."
+  },
+  {
+    id: 59,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Quieres bloquear todo el tráfico entrante de un host atacante IP 203.0.113.50 a nivel del cortafuegos nativo del servidor sin afectar el resto del tráfico web del sistema de producción. ¿Qué regla de IPtables añade esta directiva restrictiva?",
+    options: [
+      "iptables -A INPUT -s 203.0.113.50 -j DROP",
+      "iptables -t nat -A INPUT -s 203.0.113.50 -j REJECT_PORT",
+      "iptables -A FORWARD -d 203.0.113.50 -j DENY",
+      "iptables -A OUTPUT -p tcp --dport 203.0.113.50 -j DROP"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "iptables -A INPUT -s [IP_ATACANTE] -j DROP añade de forma secuencial al final de la cadena INPUT un filtro que intercepta paquetes que contengan la IP de origen especificada y los descarta (DROP) de inmediato de la memoria del kernel de Linux."
+  },
+  {
+    id: 60,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "¿Qué protocolo de enrutamiento dinámico es el estándar por defecto utilizado por las CNI avanzadas en Kubernetes (Calico, MetalLB) para anunciar IPs de pods y clústeres hacia el núcleo físico (Switches L3 / Core Routers) sin necesidad de encapsulado de red?",
+    options: [
+      "BGP (Border Gateway Protocol)",
+      "OSPF (Open Shortest Path First)",
+      "RIP v2 (Routing Information Protocol)",
+      "VRRP (Virtual Router Redundancy Protocol)"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "BGP (Border Gateway Protocol) es el pilar de conectividad del clúster nativo avanzado híbrido de red. Al anunciar e integrar rutas IP de manera directa sobre los nodos maestros y los routers físicos externos del centro de datos corporativo, permite la comunicación nativa punto a punto sinオーバーヘッ (cero overhead de VXLAN u Geneve)."
+  },
+  {
+    id: 61,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Durante un despliegue de alta transaccionalidad, notas que los clientes experimentan demoras de hasta 3 segundos en resolver direcciones internas del clúster de red de producción. Sospechas problemas con la resolución inversa DNS e inyectas optimizaciones en la configuración local de red. ¿Qué archivo del host Linux configura la lista de servidores primarios de nombres de dominio DNS?",
+    options: [
+      "/etc/resolv.conf",
+      "/etc/hosts",
+      "/etc/nsswitch.conf",
+      "/etc/sysconfig/network-scripts"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El fichero '/etc/resolv.conf' es el configurador fundamental de la biblioteca del resolver de nombres del kernel de Linux. Define el listado jerárquico de servidores DNS primarios, secundarios y las directivas de filtrado de búsqueda (search domains) aplicables de manera local."
+  },
+  {
+    id: 62,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Deseas validar si un puerto TCP específico (p. ej., PostgreSQL 5432) en un servidor de Kubernetes de base de datos distribuidas está escuchando llamadas externas de red. ¿Qué utilitario rápido de terminal valida este canal de comunicación bidireccional?",
+    options: [
+      "nc -zv IP_DB 5432",
+      "ping IP_DB -p 5432",
+      "traceroute IP_DB --port=5432",
+      "ip route check IP_DB:5432"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando netcat ('nc') con banderas '-zv' realiza un chequeo de socket TCP de forma ultra-rápida. Con '-z' (zero-I/O mode) inicia el túnel TCP sin enviar datos, y con '-v' (verbose) expone claramente si la negociación de socket de red se completó con éxito (Connection established) o si fue rechazada."
+  },
+  {
+    id: 63,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "Una interfaz lógica de puente de red (Bridge dev en Linux) consolida tráfico de 10 VMs independientes. Se reporta alta degradación interna por inundación de tramas Ethernet innecesarias por broadcast. ¿Qué propiedad configurable en las interfaces bridge del kernel de Linux inhabilita el envío redundante a todos los puertos desactivando la auto-asociación de direcciones MAC en sockets muertos?",
+    options: [
+      "Inhabilitar el modo promiscuo en las tarjetas físicas y configurar 'bridge MAC aging' de manera granular.",
+      "Establecer la tabla de IPTables estática en la tabla mangle del sistema.",
+      "Habilitar IP-Masquerade en todas las vCPUs asociadas al concentrador KVM local.",
+      "Reducir de forma extrema las IPs físicas de red asignadas por el daemon DHCP."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Deshabilitar el 'promiscuous mode' (modo promiscuo) en conjunto con la optimización de las tablas de reenvío en puentes de red (FDB - Forwarding Database aging / ARP timeout tuning) restringe drásticamente la inundación física lateral de tramas al guiar los paquetes exclusivamente a interfaces activamente encoladas."
+  },
+  {
+    id: 64,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "¿Qué comando y utilitario de red avanzado muestra el ruteo lógico paso a paso de los saltos que realiza una trama ICMP hasta llegar a un servidor externo, exponiendo qué elemento de red genera latencia extrema?",
+    options: [
+      "traceroute IP_DESTINO",
+      "route -n IP_DESTINO",
+      "netstat -rn IP_DESTINO",
+      "arp -a IP_DESTINO"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'traceroute' calcula recurrentemente el campo de vida del paquete (TTL - Time To Live) en cabeceras IP incrementándolo secuencialmente de 1 a N. Cada router de la ruta descarta el TTL interrumpiendo el flujo, y enviando un mensaje ICMP Time Exceeded de vuelta, revelando la IP y latencia de cada nodo ruteador intermedio."
+  },
+  {
+    id: 65,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "Un operador configura un entorno de telecomunicaciones que transporta tramas encapsuladas en túneles VXLAN en una subred de producción. El rendimiento físico es paupérrimo. ¿Qué optimización física a nivel de chip de la tarjeta del host (NIC) descarga gran parte del procesamiento de cabeceras VXLAN para aliviar la carga de CPU física del host?",
+    options: [
+      "VxLAN Offloading (ethtool -K eth0 rx-vxlan-offload-v4 on tx-vxlan-offload-v4 on)",
+      "Deshabilitar la autenticación de tramas SSH sobre túneles L3",
+      "Aumentar la memoria RAM disponible para los subprocesos de la CNI",
+      "Re-formatear los discos virtuales KVM en formato lvm-stripe de baja latencia"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La optimización 'VXLAN Offloading' habilita en la controladora física Intel/Mellanox (NIC) la capacidad de procesar de forma nativa en silicio las cabeceras externas VXLAN, disminuyendo significativamente el procesamiento requerido por los cores de la CPU del host para el cálculo del checksum e inspección de tramas lógicas."
+  },
+  {
+    id: 66,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "Quieres visualizar y validar la tabla ARP (Address Resolution Protocol) en un nodo para comprobar qué dirección física MAC del switch está asociada a una dirección IP de producción conflictiva local. ¿Qué comando utilizas?",
+    options: [
+      "ip neigh show",
+      "netstat -p arp",
+      "iptables -t filter -L INPUT",
+      "ip route show status"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando de la moderna suite iproute2 'ip neigh show' (equivalente clásico a 'arp -n') expone la tabla del vecindario IP de Linux del kernel en tiempo real mapeando de forma ordenada de direcciones IPv4 hacia direcciones físicas lógicas de la tarjeta de red MAC."
+  },
+  {
+    id: 67,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "¿Qué archivo de configuración en sistemas Linux tradicionales controla la precedencia de resolución de nombres de dominio indicando si el sistema de red debe verificar primero el archivo estático local '/etc/hosts' antes de realizar peticiones DNS externas?",
+    options: [
+      "/etc/nsswitch.conf",
+      "/etc/resolv.conf",
+      "/etc/hosts.allow",
+      "/etc/sysctl.conf"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El archivo '/etc/nsswitch.conf' (Name Service Switch) define las bases de datos de servicio prioritarias en el host. La línea 'hosts: files dns' instruye al kernel a buscar un alias estático local en '/etc/hosts' primero; si no se encuentra allí, se iniciarán consultas a los resolv dedicados en el DNS de red."
+  },
+  {
+    id: 68,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "En entornos de telecomunicación se despligan clústeres redundantes para servicios de voz en tiempo real exponiendo tráfico altamente sensible a pérdidas en conmutación síncrona. Se requiere que el bonding implementado opere en modo redundante pasivo activo que conmute el canal en menos de 100 milisegundos ante caídas de enlace físicas. ¿Qué configuración modela este requerimiento?",
+    codeSnippet: `BONDING_OPTS="mode=1 miimon=100"`,
+    options: [
+      "BONDING_OPTS=\"mode=1 miimon=100\"",
+      "BONDING_OPTS=\"mode=0 miimon=20\"",
+      "BONDING_OPTS=\"mode=4 arp_interval=300\"",
+      "BONDING_OPTS=\"mode=5 xmit_hash_policy=layer2\""
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El modo 'bonding 1' (active-backup) define la arquitectura redundante clásica pasivo-activo. Asociado al parámetro 'miimon=100' (Media Independent Interface monitor), el driver del kernel de Linux comprueba el estado de los enlaces cada 100 ms ejecutando una rápida conmutación en frío que resguarda el tráfico residual."
+  },
+  {
+    id: 69,
+    category: "Networking e Infraestructura",
+    difficulty: "Senior",
+    question: "¿Cómo puedes mapear una regla de IPTables para que de manera explícita redireccione el tráfico entrante del puerto HTTP público 80 al puerto alternativo no privilegiado de Tomcat 8080 local del servidor de producción?",
+    codeSnippet: `iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080`,
+    options: [
+      "Inyectar una regla de tipo PREROUTING en la tabla de NAT apuntando al target REDIRECT con '--to-ports 8080'.",
+      "Modificar las variables del kernel con un alias de red local 'ip tunnel redirect-http'.",
+      "Asociar el Ingress de Kubernetes con accesos directos al puerto del balanceador local.",
+      "Emplear un proxy síncrono escrito en Python heredando la propiedad SocketServer direct."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La tabla 'nat' posee la cadena 'PREROUTING' que intercepta los paquetes entrantes justo antes de tomar decisiones de enrutamiento. Con el comando '-j REDIRECT --to-ports 8080' se reescribe de manera inmediata el puerto destino en el encabezado del paquete de software."
+  },
+  {
+    id: 70,
+    category: "Networking e Infraestructura",
+    difficulty: "Architect",
+    question: "Un operador desea aislar totalmente el tráfico de control del plano de gestión del clúster de Kubernetes del plano de datos expuesto a internet. Los host y switches físicos intermedios admiten VLAN Trunking. ¿Qué enfoque arquitectónico a nivel de sistemas operativos Linux de los nodos proporciona el mejor aislamiento lógico?",
+    options: [
+      "Configurar múltiples VLANs físicas en la placa de red (p. ej., eth0.10 para control, eth0.20 para datos) asignando rangos CIDR y tablas de enrutamiento independientes utilizando reglas lógicas avanzadas de IP Rule.",
+      "Emplear una única IP maestra global de puente físico y alternar filtrado de Ingress mediante anotaciones en el archivo index.html.",
+      "Deshabilitar los balanceadores locales inyectando una base de datos distribuida Keystone de red.",
+      "Reducir las interfaces de red del clúster obligando a todos los flujos de tráfico a usar túneles estáticos IP-in-IP síncronos."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Configurar interfaces VLAN separadas a través de subinterfaces virtuales L2 (eth0.10 y eth0.20) y asociarlas mediante tablas de enrutamiento desacopladas mediante el kernel de Linux (Policy-Based Routing - PBR / ip rule) proporciona aislamiento total de capas lógicas evitando la fuga lateral de tráfico sensitivo."
+  },
+
+  // ==========================================
+  // LINUX Y SCRIPTING (10 preguntas: ID 71-80)
+  // ==========================================
+  {
+    id: 71,
+    category: "Linux y Scripting",
+    difficulty: "Senior",
+    question: "Necesitas parsear en tiempo real un archivo masivo de logs ('production.log') de 10GB de manera eficiente para extraer solo la dirección IP interna y el código de error HTTP en líneas que contienen alertas críticas 'CRITICAL-SYS'. ¿Qué comando en Bash realiza esta operación optimizando el procesamiento de la memoria?",
+    options: [
+      "awk '/CRITICAL-SYS/ {print $3, $7}' production.log",
+      "cat production.log | grep \"CRITICAL-SYS\" | cut -d' ' -f3,7",
+      "sed -n 's/CRITICAL-SYS/&/p' production.log | awk '{print $3, $7}'",
+      "grep -oE \"CRITICAL-SYS\" production.log > dump && awk '{print $3}' dump"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'awk' procesa archivos línea por línea de forma extremadamente eficiente en streaming de memoria sin cargar el archivo completo en RAM. Combinar el patrón de filtro '/CRITICAL-SYS/' con la impresión de los campos necesarios '{print $3, $7}' realiza la selección e impresión de datos de una sola pasada sobre el fichero físico."
+  },
+  {
+    id: 72,
+    category: "Linux y Scripting",
+    difficulty: "Architect",
+    question: "Tienes un script que se ejecuta en segundo plano como daemon de control crítico. Para garantizar el cierre suave y persistente liberando conexiones SQL ante reinicios repentinos, necesitas interceptar la señal de apagado del clúster de red (SIGTERM). ¿Qué estructura nativa de Bash implementa esta captura en entornos de producción?",
+    codeSnippet: `#!/bin/bash
+cleanup() {
+  echo "Clean resources..."
+  # database-disconnect
+}
+trap cleanup SIGTERM # <-- ¿Qué implica esto?`,
+    options: [
+      "El constructor builtin de Bash 'trap' enlazando una función de limpieza dedicada sobre la señal SIGTERM.",
+      "Un bloque asíncrono 'handle-error-sigterm' con proxies lógicos de software.",
+      "Configurar la propiedad 'RestartSec=infinity' sobre el descriptor systemd local.",
+      "Emplear interrupciones directas del procesador mapeadas mediante llamadas POSIX escritas en C."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando interno de Bash 'trap' permite al programador registrar rutinas personalizadas de retorno que interceptan señales devueltas por el kernel o plano de control del sistema (p. ej., SIGTERM / SIGINT). Esto evita que el subproceso muera de forma violenta, permitiéndole de manera autónoma cerrar archivos de almacenamiento y conmutar réplicas."
+  },
+  {
+    id: 73,
+    category: "Linux y Scripting",
+    difficulty: "Senior",
+    question: "¿Qué comando avanzado de administración de disco LVM en Linux te permite ampliar de manera segura de forma caliente un volumen lógico (/dev/vg_system/lv_data) incrementándolo en 50GB adicionales después de haber redimensionado físicamente la partición en la SAN subyacente?",
+    options: [
+      "lvextend -L +50G /dev/vg_system/lv_data -r",
+      "vgextend -L +50G /dev/vg_system/lv_data && resize2fs",
+      "pvresize /dev/vg_system/lv_data --expand-all",
+      "mkfs.ext4 -F -h +50G /dev/vg_system/lv_data"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando 'lvextend' amplía de manera flexible el volumen lógico. Al agregar el parámetro '-r' (o '--resizefs'), el sistema operativo Linux redimensiona automáticamente de forma coordinada el sistema de archivos subyacente (ext4 o XFS) de una sola pasada en caliente sin requerir un desmontado preventivo de discos."
+  },
+  {
+    id: 74,
+    category: "Linux y Scripting",
+    difficulty: "Senior",
+    question: "Quieres optimizar los metadatos de tu sistema Linux de manera granular. ¿Cuál de las siguientes opciones describe de manera óptima el rol de un Inodo (Inode) en el sistema de archivos de Linux?",
+    options: [
+      "Un Inodo es una estructura de metadatos estática de tamaño fijo que almacena información crítica de un archivo físico (permisos, dueño, tamaño, timestamps) y los punteros a los bloques de disco físicos del almacenamiento, omitiendo almacenar el nombre real del archivo o su contenido.",
+      "Es el daemon del kernel de Linux que recopila de manera cíclica logs y alertas térmicas en el chasis.",
+      "Representa la IP dinámica de enrutamiento asociada de forma directa al puerto SSL del clúster trabajador.",
+      "Es el identificador del socket UNIX de control reservado para el proceso systemd init primario."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los inodos son estructuras de datos fundamentales en sistemas de archivos Unix/Linux. Contienen toda la información que describe el archivo (metadatos como tamaño, permisos, timestamps, punteros físicos al disco) menos el nombre de archivo directo (que se guarda de forma estructurada en la lista del directorio) y el payload de datos."
+  },
+  {
+    id: 75,
+    category: "Linux y Scripting",
+    difficulty: "Architect",
+    question: "Se reporta alta degradación en un host que ejecuta un daemon corporativo debido a que agota con frecuencia la memoria virtual por pérdida aleatoria de punteros a archivos físicos abiertos que no son liberados de manera interactiva por la JVM. ¿Qué comando te muestra el listado absoluto de descriptores de archivos huérfanos que el kernel mantiene abiertos?",
+    options: [
+      "lsof +L1",
+      "df -i",
+      "ls -l /proc/sys/fs/file-max",
+      "ps aux --files-opened"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El comando 'lsof +L1' expone descriptores de archivos activos abiertos por procesos que tienen un conteo de enlaces lógicos (link count) menor a 1 (lo que indica que el archivo físico subyacente ya fue borrado del volumen de disco con un comando rm, pero el proceso sigue reteniéndolo consumiendo espacio físico fantasma e inodos de RAM)."
+  },
+  {
+    id: 76,
+    category: "Linux y Scripting",
+    difficulty: "Senior",
+    question: "Quieres crear de manera flexible un servicio persistente administrado por el sistema host que sobreviva a reinicios y se auto-recupere tras fallidas inesperadas de ejecución. ¿En qué directorio jerárquico debes situar el archivo descriptor 'my-service.service' en una distribución CentOS/Ubuntu estándar?",
+    options: [
+      "/etc/systemd/system/",
+      "/etc/init.d/services/",
+      "/usr/local/bin/",
+      "/var/run/systemd/services/"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Para crear e integrar de manera consistente servicios permanentes administrados por systemd del sistema de forma global, se deben situar los descriptores de unidades en el directorio '/etc/systemd/system/' permitiendo persistencia estructural de enlaces suaves."
+  },
+  {
+    id: 77,
+    category: "Linux y Scripting",
+    difficulty: "Architect",
+    question: "Al depurar fallas de conmutación de tráfico, notas que un script en Bash devuelve el error 'Too many open files'. Sospechas que la shell tiene límites restrictivos para el número de descriptores de archivos concurrentes. ¿Qué utilitario y archivo de configuración debes editar persistentemente para aumentar estos límites del kernel por sesion de usuario?",
+    options: [
+      "Editando '/etc/security/limits.conf' indicando políticas lógicas y ejecutando temporalmente el comando 'ulimit -n'.",
+      "Modificando los parámetros de overcommit en el archivo persistente sysctl.conf.",
+      "Ejecutando un formateo a la partición de swap aumentando la memoria temporal virtual de disco.",
+      "Asociando rutinas cron directas de reinvención de puertos en el bus local."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El archivo '/etc/security/limits.conf' unificado permite establecer límites físicos (hard) y lógicos (soft) sobre parámetros de usuario (como 'nofile' para número de descriptores abiertos). La shell de Linux lee estos límites al autenticar y los aplica dinámicamente mediante el comando nativo de Bash 'ulimit -n'."
+  },
+  {
+    id: 78,
+    category: "Linux y Scripting",
+    difficulty: "Senior",
+    question: "Estás escribiendo un script en Bash que debe validar de forma segura si un directorio crítico de almacenamiento montado (/mnt/storage/data) existe de manera física antes de iniciar operaciones masivas de replicación de base de datos. ¿Qué sintaxis condicional de bash realiza esta validación?",
+    options: [
+      "if [ -d \"/mnt/storage/data\" ]; then ... fi",
+      "if [ -f \"/mnt/storage/data\" ]; then ... fi",
+      "if [ -e \"/mnt/storage/data\" ]; then ... fi",
+      "if [ -r \"/mnt/storage/data\" ]; then ... fi"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "En la shell Bash, el modificador condicional '-d' evalúa específicamente si el argumento provisto corresponde a un directorio válido y existente en la jerarquía del sistema de archivos, aislando el script de fallas críticas por rutas rotas o volúmenes desmontados."
+  },
+  {
+    id: 79,
+    category: "Linux y Scripting",
+    difficulty: "Senior",
+    question: "Necesitas reemplazar rápidamente de manera síncrona todas las apariciones de la IP corporativa obsoleta '10.0.1.20' por la nueva dirección IP '10.0.2.100' dentro de 50 archivos planos de configuración de Terraform en el directorio actual alternando backups. ¿Qué comando de sed en línea lo realiza de una sola pasada?",
+    options: [
+      "sed -i 's/10.0.1.20/10.0.2.100/g' *.tf",
+      "sed 's/10.0.1.20/10.0.2.100/g' *.tf > backup.tf",
+      "grep -r '10.0.1.20' *.tf | sed 's/10.0.2.100/g'",
+      "sed -r 'replace=10.0.1.20,10.0.2.100' *.tf"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "La bandera '-i' de 'sed' instruye al flujo a realizar modificaciones 'in-place' (editar el archivo original directamente por el kernel) en conjunto con el patrón de sustitución 's/antiguo/nuevo/g' de forma global en todos los archivos que coincidan con la extensión física de Terraform."
+  },
+  {
+    id: 80,
+    category: "Linux y Scripting",
+    difficulty: "Architect",
+    question: "Durante un proceso de auditoría forense de seguridad local en un host de producción, se reportan altos riesgos porque un proceso misterioso se está ejecutando de forma zombie consumiendo punteros lógicos de PID. ¿Cómo elimina de manera determinista un operador un proceso zombi en entornos Linux?",
+    options: [
+      "Un proceso zombi ya está muerto y no puede destruirse con SIGKILL directamente. Debe enviarse la señal SIGCHLD (kill -s SIGCHLD) al proceso padre (Parent Process ID - PPID) para forzarlo a recopilar la información de estado o, en última instancia, reiniciar el proceso padre.",
+      "Ejecutando de forma recurrente el script estático 'systemctl kill zombies-agent' en la shell.",
+      "Reduciendo a cero la RAM lógica del contenedor eliminando punteros cgroups del proceso.",
+      "Re-formateando la partición de almacenamiento primario swap de Linux montada en CentOS."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los procesos zombies son aquellos que han finalizado su ejecución, pero siguen presentes en la tabla de procesos debido a que su proceso padre no ha leído su estado lúdico de salida mediante llamadas POSIX wait(). Dado que el kernel ya los mató, no responden a SIGKILL, por lo que se debe notificar al padre con SIGCHLD para que limpie la entrada de la tabla, o matar al proceso padre para que los adopte 'init' (PID 1) y los limpie automáticamente."
+  },
+
+  // ==========================================
+  // TERRAFORM (10 preguntas: ID 81-90)
+  // ==========================================
+  {
+    id: 81,
+    category: "Terraform",
+    difficulty: "Senior",
+    question: "Quieres realizar modificaciones granulares consistentes en el estado de aprovisionamiento de Terraform para mapear un recurso existente ('aws_instance.db') que fue recreado manualmente en la consola web de AWS. ¿Qué comando realiza este importación de estado física lúdico?",
+    options: [
+      "terraform import aws_instance.db i-0123456789abcdef",
+      "terraform state mv aws_instance.db i-0123456789abcdef",
+      "terraform apply -target=aws_instance.db --sync-console",
+      "terraform push aws_instance.db --id=i-0123456789abcdef"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'terraform import' asocia recursos de cloud creados de forma manual fuera del pipeline IaC al estado interno 'terraform.tfstate', permitiendo que los metadatos mapeen e impidan la destrucción accidental del recurso real en ejecuciones de apply colaterales."
+  },
+  {
+    id: 82,
+    category: "Terraform",
+    difficulty: "Architect",
+    question: "Un operador de DevOps experimenta una falla destructiva crítica al correr un proyecto de Terraform concurrente dentro de un equipo consolidado de 10 personas. Dos ingenieros corrieron comandos 'terraform apply' al mismo tiempo provocando corrupción irreversible del estado. ¿Cómo se mitiga este riesgo de consistencia en entornos de producción?",
+    options: [
+      "Configurar un backend remoto robusto que soporte bloqueo de estado (State Locking), por ejemplo, almacenamiento remoto nativo en Terraform Cloud, un bucket de AWS S3 de forma coordinada con una base de datos DynamoDB para la retención física de la llave de paso o Consul de HashiCorp.",
+      "Configurar archivos Git deshabilitando la sincronización de archivos binarios .tfstate en repositorios.",
+      "Forzar a cada ingeniero a correr de forma secuencial la rutina manual editando playbooks de Ansible.",
+      "Deshabilitar los balanceadores cloud y establecer un único hilo del CPU local del sistema operativo del nodo de Terraform."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El bloqueo de estado (State Locking) es un mecanismo vital para evitar que operaciones simultáneas muten y corrompan el archivo de estado persistente 'terraform.tfstate'. Motores robustos (S3 combinados con DynamoDB para bloqueos exclusivos rápidos mediante llaves lúdicas de software) previenen de manera automática que otras operaciones escriban en paralelo."
+  },
+  {
+    id: 83,
+    category: "Terraform",
+    difficulty: "Senior",
+    question: "Necesitas referenciar de forma flexible y modular salidas de información dinámica (Outputs) generadas por un entorno de aprovisionamiento desacoplado separado ('VPC_Network') para inyectarlas directamente en el pipeline de un cluster de base de datos distribuidas. ¿Qué objeto nativo permite leer metadatos de otros proyectos en Terraform?",
+    codeSnippet: `data "terraform_remote_state" "network" {
+  backend = "s3"
+  config = {
+    bucket = "network-state-bucket"
+    key    = "production/vpc.tfstate"
+  }
+}`,
+    options: [
+      "data \"terraform_remote_state\"",
+      "resource \"remote_output_mapping\"",
+      "variable \"vpc_state_input\"",
+      "module \"vpc_external_attributes\""
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El recurso de datos 'terraform_remote_state' posibilita acceder al estado de solo lectura expuesto por otra configuración remota independiente de Terraform. Esto promueve arquitecturas altamente desacopladas disminuyendo el impacto lateral de fallas en cascada en IaC."
+  },
+  {
+    id: 84,
+    category: "Terraform",
+    difficulty: "Senior",
+    question: "¿Qué comando nativo de Terraform valida sintácticamente el esquema declarativo de variables y código, verificando la consistencia interna, dependencias y consistencia física de la semántica local sin comunicarse con APIs de nube externas?",
+    options: [
+      "terraform validate",
+      "terraform plan --dry-run",
+      "terraform fmt -check",
+      "terraform graph"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'terraform validate' comprueba que la estructura del código y los metadatos HCL sean consistentes. Evalúa de manera interactiva la existencia de variables declaradas ausentes de tipo, dependencias mal definidas y la coherencia lógica interna total del código del proyecto de IaC."
+  },
+  {
+    id: 85,
+    category: "Terraform",
+    difficulty: "Architect",
+    question: "Estás estructurando un recurso de computación masivo variable en Terraform. Deseas iterar y crear de forma dinámica múltiples interfaces lógicas lúdicas basadas en valores cambiantes anidadas dentro de una única declaración de recurso cloud. ¿Qué constructor estructural de HCL del lenguaje nativo de HashiCorp implementas?",
+    options: [
+      "dynamic blocks (bloques dinámicos)",
+      "constructores alternativos count",
+      "loops nativos for_each en el archivo index.html",
+      "macros dinámicas external providers"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los 'dynamic blocks' permiten al desarrollador iterar sobre arreglos y colecciones de variables estructuradas inyectando de manera limpia sub-bloques repetitivos de configuración anidados (tales como configuradores de puertos, discos o firewalls) de forma adaptativa reduciendo la duplicación masiva de código HCL."
+  },
+  {
+    id: 86,
+    category: "Terraform",
+    difficulty: "Senior",
+    question: "Un operador experimenta inestabilidad física tras eliminar manualmente una subred física en la interfaz administrativa del proveedor Cloud. Al correr 'terraform plan', la herramienta sigue mostrando que el recurso existe de forma correcta. ¿Qué comando obliga a Terraform a re-evaluar de manera forzosa el estado real de la infraestructura consultando los recursos directamente?",
+    options: [
+      "terraform plan -refresh-only (o terraform refresh)",
+      "terraform state pull",
+      "terraform init -reconfigure",
+      "terraform plan -target=aws_subnet --destroy-bypass"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'terraform refresh' (o la bandera '-refresh-only' coordinada en planes modernos) actualiza el archivo de estado de Terraform correlacionando la configuración con los recursos reales remotos del proveedor físico, enmendando discrepancias sin realizar mutaciones destructivas."
+  },
+  {
+    id: 87,
+    category: "Terraform",
+    difficulty: "Architect",
+    question: "Estás desarrollando un módulo de Terraform altamente parametrizable. Para garantizar robustez total, necesitas asegurar que las variables pasadas por el usuario no contengan caracteres especiales vulnerables y que el parámetro de entrada 'environment_name' pertenezca obligatoriamente a una lista cerrada de entornos válidos (p. ej., [dev, staging, prod]). ¿Qué directiva evalúa y valida este comportamiento restrictivo en el HCL?",
+    codeSnippet: `variable "environment_name" {
+  type = string
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment_name)
+    error_message = "El entorno especificado ... es inválido."
+  }
+}`,
+    options: [
+      "La sección estructurada 'validation' con condiciones booleanas declaradas en 'condition' aplicadas a la variable.",
+      "Una llamada al módulo 'external assert system'.",
+      "Configurar parámetros default de forma síncrona en el crontab local.",
+      "Deshabilitar los backend remotos obligando a procesar en local del microprocesador."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Los bloques de 'validation' aplicados a variables en Terraform permiten establecer estrictos contratos de tipo y reglas de integridad de datos. Si un parámetro ingresado por el operador no cumple la condición lógica, la ejecución de inicialización se interrumpe de forma limpia, impidiendo parches rotos en producción."
+  },
+  {
+    id: 88,
+    category: "Terraform",
+    difficulty: "Senior",
+    question: "¿Qué archivo autogenerado de configuración y hashes de dependencias debe guardarse persistentemente en el control de versiones (Git) según las mejores prácticas modernas de Terraform para certificar que el equipo consuma versiones idénticas de plugins y proveedores?",
+    options: [
+      ".terraform.lock.hcl",
+      "terraform.tfstate.backup",
+      ".terraform/providers/",
+      "variables.tfvars"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El archivo '.terraform.lock.hcl' almacena la firma criptográfica pesada de todos los proveedores y plugins externos (providers) inicializados en el proyecto. Subir este archivo a Git garantiza que todas las computadoras de los operadores y de los servidores de CI/CD descarguen e inicialicen exactamente las mismas versiones de software."
+  },
+  {
+    id: 89,
+    category: "Terraform",
+    difficulty: "Senior",
+    question: "Deseas destruir de manera exclusiva un volumen de almacenamiento no persistente aprovisionado en tu ecosistema cloud sin alterar el resto de los componentes productivos declarados en el archivo HCL. ¿Qué bandera del comando apply/destroy permite este alcance quirúrgico?",
+    options: [
+      "-target=aws_volume.temp",
+      "--force-cleanup",
+      "-destroy-only-resource",
+      "--bypass-state-checks"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El parámetro '-target' posibilita limitar la ejecución del planificador bi-direccional de Terraform a un recurso físico granular de software, aislando el comportamiento estructural del resto del árbol jerárquico de dependencias del grafo de IaC, útil para intervenciones puntuales rápidas."
+  },
+  {
+    id: 90,
+    category: "Terraform",
+    difficulty: "Architect",
+    question: "Al optimizar el flujo de trabajo en la nube, observas latencia extrema en comandos de plan y apply sobre redes complejas por exceso de dependencias implícitas mal declaradas en el HCL. ¿Qué herramienta gráfica nativa de Terraform genera y expone visualmente el árbol de relaciones físicas para depurar cuellos de botella estructurales del grafo?",
+    options: [
+      "terraform graph",
+      "terraform console",
+      "terraform state list",
+      "terraform show --visualizer"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'terraform graph' genera el árbol lógico de dependencias e interacciones en formato estandarizado estructurado de tipo Graphviz (DOT), exponiendo de forma interactiva qué recursos dependen físicamente de qué otros componentes y permitiendo sanear dependencias circulares complejas."
+  },
+
+  // ==========================================
+  // GIT Y GITOPS (10 preguntas: ID 91-100)
+  // ==========================================
+  {
+    id: 91,
+    category: "Git y GitOps",
+    difficulty: "Senior",
+    question: "En un ecosistema de despliegue continuo estructurado bajo el paradigma GitOps (p. ej., ArgoCD o FluxCD), modificas un valor en Helm de un Deployment de producción. ¿Qué papel cumple el bucle de coincidencia o Reconciliación en esta arquitectura?",
+    options: [
+      "Compara iterativamente de forma infinita el estado deseado declarado en Git contra el estado real (live state) del clúster de Kubernetes, aplicando automáticamente los cambios correspondientes autorreferenciales para reparar desviaciones accidentales (out-of-sync).",
+      "Realiza de forma cíclica una compilación estática de la web de la consola de Keystone.",
+      "Ejecuta un script programado en cron que limpia los puertos de SSH del nodo de Ansible.",
+      "Redirige de manera dinámica las interfaces de red físicas VXLAN si la latencia es alta."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El núcleo de GitOps es el bucle de reconciliación (Reconciliation Loop). Los agentes que corren dentro del clúster están continuamente sondeando el estado declarado del repositorio de Git y cotejando con el clúster. Si un operador realiza cambios imprudentes de forma directa con kubectl (desviando el live state), el agente los revierte de forma automática sincronizando la declaración inmutable de Git."
+  },
+  {
+    id: 92,
+    category: "Git y GitOps",
+    difficulty: "Architect",
+    question: "Durante un despliegue de emergencia, notas que en la rama principal se incorporó un cambio destructivo que rompió el inicio suave de base de datos distribuidas. Deseas trazar de manera granular cada confirmación (Commit) aplicando pruebas binarias estructuradas para validar de manera precisa cuál es el commit específico que introdujo el bug. ¿Qué comando avanzado de Git lo automatiza?",
+    codeSnippet: `git bisect start
+git bisect bad # Commit roto actual
+git bisect good v1.4.0 # Último release sano conocido`,
+    options: [
+      "git bisect",
+      "git log --follow-bug",
+      "git reflog find-crash",
+      "git cherry-pick --dry-run"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'git bisect' utiliza un algoritmo matemático estructurado de búsqueda binaria para encontrar el commit causante de una regresión. Al marcar estados buenos y malos, reduce exponencialmente el espacio de búsqueda dividiendo el listado de commits concurrentes a la mitad, localizando de forma quirúrgica la alteración."
+  },
+  {
+    id: 93,
+    category: "Git y GitOps",
+    difficulty: "Senior",
+    question: "Quieres trasladar quirúrgicamente una corrección de seguridad específica contenida en una confirmación única en la rama de desarrollo ('dev') directamente sobre la rama oficial de producción ('main') sin acoplar cambios residuales colaterales o fusiones destructivas que requieran revisiones de código de alto riesgo. ¿Qué comando de Git asume este traslado?",
+    options: [
+      "git cherry-pick <COMMIT_HASH>",
+      "git merge --squash dev",
+      "git rebase --onto main dev",
+      "git checkout main --force-changes"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'git cherry-pick' copia los cambios introducidos por una confirmación estricta y específica sobre la rama activa actual aplicando el parche de forma aislada, evitando arrastrar código colateral e imprudente de otras tramas de desarrollo."
+  },
+  {
+    id: 94,
+    category: "Git y GitOps",
+    difficulty: "Senior",
+    question: "¿Qué paradigma de aprovisionamiento de GitOps (Pull vs. Push) es considerado la mejor práctica nativa de la arquitectura Cloud-Native por su seguridad, robustez RBAC y aislamiento de credenciales?",
+    options: [
+      "El modelo 'Pull', debido a que el agente inteligente corre internamente dentro de Kubernetes, monitorea los cambios en Git y aprovisiona de forma local, evitando tener que exponer las credenciales y puertos de la API de Kubernetes hacia redes de CI/CD externas de terceros.",
+      "El modelo 'Push', puesto que delega de manera directa en servidores remotos externos la monitorización total de las IPs lógicas.",
+      "Enrutamientos por proxies manuales que inyectan llaves SSH cifradas en la RAM de los balanceadores.",
+      "Ambos modelos exponen exactamente idénticos niveles de acoplamiento de roles y seguridad estática de cortafuegos."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El modelo 'Pull-based' asume mayor grado higiénico de seguridad dado que el agente operador (tales como ArgoCD o Flux) reside dentro del clúster de Kubernetes, operando con roles de red RBAC internos locales. No se expone el puerto de la consola del API server a internet ni se tienen que registrar claves secretas maestras del Kubernetes en pipelines externos."
+  },
+  {
+    id: 95,
+    category: "Git y GitOps",
+    difficulty: "Architect",
+    question: "Un operador experimenta conflictos complejos de fusión (merge conflicts) en un repositorio git concurrente de 50 desarrolladores. Deseas un historial liso lineal, limpio sin que queden registrados commits redundantes tipo 'Merge branch...'. ¿Qué flujo de reaplicación local de commits sobre la punta de la rama compartida principal se debe preferir?",
+    options: [
+      "git rebase",
+      "git merge --no-ff",
+      "git checkout --track-branch",
+      "git commit -am \"Fix conflicts manual\""
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'git rebase' toma los commits realizados de forma aislada en una bifurcación de desarrollo y los re-aplica de manera quirúrgica uno a uno sobre la cabecera actual de la rama principal seleccionada. Esto re-escribe el historial de forma cronológica lineal impidiendo la presencia de ramas paralelas cruzadas que compliquen el flujo de CI/CD."
+  },
+  {
+    id: 96,
+    category: "Git y GitOps",
+    difficulty: "Senior",
+    question: "¿Qué herramienta nativa e integrada se encarga de almacenar de forma fuertemente cifrada mediante claves públicas de criptografía asimétrica los secretos de infraestructura (ej. bases de datos, tokens de API) directamente en Git, permitiendo que decodifiquen y monten de forma transparente sólo al interior de Kubernetes?",
+    options: [
+      "Sealed Secrets (Bitnami) o Mozilla SOPS",
+      "Ansible Vault playbooks integrados",
+      "Terraform state local encryption",
+      "AWS KMS key rings locales"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'Sealed Secrets' permite cifrar de manera asimétrica a través de claves públicas del clúster Kubernetes un recurso de tipo Secret común. El secreto cifrado obtenido es inofensivo si se almacena en Git público dada la imposibilidad de descifrado, y sólo el controlador interno del clúster con la llave privada puede desencapsularlo para la red interna."
+  },
+  {
+    id: 97,
+    category: "Git y GitOps",
+    difficulty: "Architect",
+    question: "Durante un despliegue de un clúster utilizando ArgoCD, notas la alerta persistente 'Auto-Heal Out of Sync' y el Pod se regenera contínuamente de forma asíncrona. Sospechas que una herramienta externa de monitoreo (como Kyverno o un operador mutador) está editando la IP de una réplica o anotación en caliente. ¿Cómo resuelves esta contención en la declaración del App manifest sin deshabilitar la reconciliación automatizada?",
+    options: [
+      "Inyectar la sección 'ignoreDifferences' especificando de forma explícita qué campos o rutas JSONPath lógicas (ej. metadata.annotations) debe pasar por alto el motor de reconciliación de ArgoCD al comparar el Git vs. Live State.",
+      "Terminar la ejecución del controlador ArgoCD eliminando el Operator DaemonSet de forma temporal.",
+      "Re-grabar el repositorio de git inyectando llaves de base de datos síncronas sin cifrar.",
+      "Obligar a todos los desarrolladores del ecosistema de la nube a registrar commits cada 2 minutos."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "El bloque 'ignoreDifferences' en la configuración de la Application de ArgoCD enseña al reconciliador a obviar diferencias puntuales inducidas por mutadores en caliente (p. ej. tags de inyección de proxies istio, auto-scale tags, etc.), previniendo loops infinitos de re-despliegue mientras se preserva la integridad."
+  },
+  {
+    id: 98,
+    category: "Git y GitOps",
+    difficulty: "Senior",
+    question: "Quieres visualizar de manera forense el historial absoluto de acciones ejecutadas sobre las cabeceras locales del repositorio Git, recuperando incluso confirmaciones (Commits) huérfanas que fueron borradas accidentalmente al correr comandos de rebase o resets destructivos. ¿Qué comando interactivo expone este registro oculto del kernel de git?",
+    options: [
+      "git reflog",
+      "git log --stat",
+      "git show-branch --all",
+      "git fsck --lost-and-found"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "'git reflog' guarda el historial completo y secuencial de dónde ha apuntado la cabecera HEAD a lo largo del tiempo local de la máquina de desarrollo de forma estricta. Registra cada reset, checkout, commit y rebase, permitiendo salvar commits perdidos persistentes antes de que el colector de basura los remueva."
+  },
+  {
+    id: 99,
+    category: "Git y GitOps",
+    difficulty: "Senior",
+    question: "Para estructurar un pipeline de GitOps coherente que reaccione instantáneamente ante confirmaciones de código reduciendo la latencia de coincidencia de 3 minutos, ¿cuál es el mecanismo de comunicación de mejores prácticas que debiera configurarse?",
+    options: [
+      "Configurar un Webhook entrante en el gestor de Git (GitHub/GitLab) que envíe una notificación HTTP POST instantánea hacia la API del controlador de GitOps (ArgoCD/Flux) para forzar una reconciliación inmediata ante nuevos commits.",
+      "Reducir manualmente el parámetro de refresco global a 5 segundos saturando de red el clúster.",
+      "Implementar un bucle estático infinito que corra 'wget' de forma síncrona en el host maestro.",
+      "Migrar de CNI internas virtuales a configuraciones de cable física L2 sin switches."
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Implementar un 'Webhook' asume el patrón de mejores prácticas de comunicación reactiva por eventos. Los gestores de repositorios notifican de forma directa en microsegundos ante cualquier push, incitando al controlador a realizar de inmediato la reconciliación del clúster sin saturar las APIs."
+  },
+  {
+    id: 100,
+    category: "Git y GitOps",
+    difficulty: "Architect",
+    question: "Se implementa un flujo de automatización robusto donde cada rama de desarrollo exige compilación hermética aislada de software en contenedores de infraestructura mutante de QA. ¿Cómo se conoce en la industria al patrón de diseño donde la automatización gestiona variables inyectando flujos lógicos emitiendo tags de versión deterministas?",
+    options: [
+      "SemVer (Semantic Versioning) coordinado con Trunk-Based Development",
+      "Pipeline Estático Síncrono Sin Ramas",
+      "Clasificación Adaptativa por Puertos Físicos",
+      "Estrategia FIFO de control de errores locales"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Semantic Versioning (SemVer) acoplado a flujos ágiles Trunk-Based permite modularizar e identificar de forma consistente cada alteración en IaC o desarrollo de software liberando parches inequívocos que las herramientas de GitOps reconcilian de manera transparente."
+  }
+];
