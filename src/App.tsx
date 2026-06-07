@@ -811,7 +811,7 @@ export default function App() {
       </header>
 
       {/* Main Container Layout */}
-      <main className="flex-grow flex items-center justify-center p-6 md:p-8 z-10 w-full max-w-7xl mx-auto my-3 overflow-hidden">
+      <main className="flex-grow flex items-start justify-center p-4 sm:p-6 md:p-8 z-10 w-full max-w-7xl mx-auto my-3 overflow-visible">
         <AnimatePresence mode="wait">
           
           {/* Welcome Screen */}
@@ -1143,32 +1143,34 @@ export default function App() {
                 </div>
 
                 {/* DevOps Question Vault Manager */}
-                <div className="mt-8 bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden shadow-2xl">
+                <div className="col-span-1 lg:col-span-12 mt-8 bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden shadow-2xl">
                   <button
                     type="button"
                     onClick={() => setCreatorExpanded(!creatorExpanded)}
-                    className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-800/40 transition-colors text-left"
+                    className="w-full px-4 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors text-left"
                   >
-                    <div className="flex items-center gap-3">
-                      <Database className="w-5 h-5 text-[#38bdf8]" />
+                    <div className="flex items-start sm:items-center gap-3">
+                      <Database className="w-5 h-5 text-[#38bdf8] mt-1 sm:mt-0 flex-shrink-0" />
                       <div>
-                        <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider">
+                        <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider leading-snug">
                           Gestor de Banco de Reactivos (JSON)
                         </h3>
-                        <p className="text-[11px] text-gray-400 font-mono">
+                        <p className="text-[11px] text-gray-400 font-mono mt-0.5">
                           Pool actual: <span className="text-[#38bdf8] font-bold">{(loadedQuestions.length > 0 ? loadedQuestions : QUESTION_BANK).length} reactivos</span> | Estado: <span className="text-emerald-400 font-bold">ACTIVO</span>
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {loadingQuestions ? (
-                        <span className="text-[10px] font-mono text-gray-500 animate-pulse">CARGANDO...</span>
-                      ) : loadError ? (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-900/40 text-red-100 border border-red-800/40 uppercase">Offline Fallback</span>
-                      ) : (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#238636]/20 text-[#2db43d] border border-[#238636]/30 uppercase font-bold">Dynamic JSON OK</span>
-                      )}
-                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${creatorExpanded ? "rotate-180" : ""}`} />
+                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t border-[#30363d]/50 sm:border-0 pt-2.5 sm:pt-0">
+                      <div className="flex items-center gap-1.5">
+                        {loadingQuestions ? (
+                          <span className="text-[10px] font-mono text-gray-500 animate-pulse">CARGANDO...</span>
+                        ) : loadError ? (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-900/40 text-red-100 border border-red-800/40 uppercase">Offline Fallback</span>
+                        ) : (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#238636]/20 text-[#2db43d] border border-[#238636]/30 uppercase font-bold">Dynamic JSON OK</span>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform ${creatorExpanded ? "rotate-180" : ""}`} />
                     </div>
                   </button>
 
@@ -1180,10 +1182,10 @@ export default function App() {
                         exit={{ opacity: 0, height: 0 }}
                         className="border-t border-[#30363d]"
                       >
-                        <div className="p-6 space-y-6">
+                        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                           
                           {/* Vault statistics widget panel */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
                             {(Object.keys(CATEGORY_STYLES) as Category[]).map(cat => {
                               const st = CATEGORY_STYLES[cat];
                               const count = (loadedQuestions.length > 0 ? loadedQuestions : QUESTION_BANK).filter(q => q.category === cat).length;
@@ -1191,7 +1193,7 @@ export default function App() {
                               const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
                               
                               return (
-                                <div key={`metrics-cat-${cat}`} className="p-3 rounded-lg bg-[#0d1117] border border-[#30363d] flex flex-col justify-between text-center">
+                                <div key={`metrics-cat-${cat}`} className="p-2.5 sm:p-3 rounded-lg bg-[#0d1117] border border-[#30363d] hover:border-[#38bdf8]/30 hover:bg-[#0d1117]/85 transition-all duration-200 flex flex-col justify-between text-center min-w-0" title={cat}>
                                   <span className="text-[9px] font-mono font-bold text-gray-400 block truncate uppercase">{cat.split(" ")[0]}</span>
                                   <div className="my-1.5">
                                     <span className="text-base font-mono font-bold text-white">{count}</span>
@@ -1206,10 +1208,10 @@ export default function App() {
                           </div>
 
                           {/* Grid control area: left Add Reactivo, right Inspect databank */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-stretch">
                             
                             {/* Left side: Interactive Add Form */}
-                            <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-5 space-y-4">
+                            <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-4 sm:p-5 space-y-4">
                               <div className="flex items-center gap-2 border-b border-[#30363d] pb-2.5">
                                 <PlusCircle className="w-4 h-4 text-[#238636]" />
                                 <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
@@ -1224,13 +1226,13 @@ export default function App() {
                               )}
 
                               <form onSubmit={handleAddCustomQuestion} className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-[10px] font-mono text-gray-400 block mb-1 uppercase font-bold">Módulo Temático</label>
                                     <select
                                       value={newQuestion.category}
                                       onChange={(e) => setNewQuestion(prev => ({ ...prev, category: e.target.value as Category }))}
-                                      className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs font-mono text-white focus:border-[#38bdf8] outline-none"
+                                      className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs font-mono text-white focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 outline-none cursor-pointer"
                                     >
                                       {(Object.keys(CATEGORY_STYLES) as Category[]).map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
@@ -1242,7 +1244,7 @@ export default function App() {
                                     <select
                                       value={newQuestion.difficulty}
                                       onChange={(e) => setNewQuestion(prev => ({ ...prev, difficulty: e.target.value as "Senior" | "Architect" }))}
-                                      className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs font-mono text-white focus:border-[#38bdf8] outline-none"
+                                      className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs font-mono text-white focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 outline-none cursor-pointer"
                                     >
                                       <option value="Senior">Senior</option>
                                       <option value="Architect">Architect</option>
@@ -1257,7 +1259,7 @@ export default function App() {
                                     value={newQuestion.question}
                                     onChange={(e) => setNewQuestion(prev => ({ ...prev, question: e.target.value }))}
                                     placeholder="Ej: Durante una degradación por fatiga térmica del plano de control..."
-                                    className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs text-white focus:border-[#38bdf8] outline-none font-sans"
+                                    className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs text-white focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 outline-none font-sans"
                                   />
                                 </div>
 
@@ -1268,7 +1270,7 @@ export default function App() {
                                     value={newQuestion.codeSnippet}
                                     onChange={(e) => setNewQuestion(prev => ({ ...prev, codeSnippet: e.target.value }))}
                                     placeholder="Ej: kubectl describe pod/coredns-8578c..."
-                                    className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs text-emerald-400 font-mono focus:border-[#38bdf8] outline-none"
+                                    className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs text-emerald-400 font-mono focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 outline-none"
                                   />
                                 </div>
 
@@ -1276,7 +1278,7 @@ export default function App() {
                                   <label className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Alternativas de Respuesta (4)</label>
                                   {newQuestion.options.map((opt, oIdx) => (
                                     <div key={`new-opt-${oIdx}`} className="flex items-center gap-2">
-                                      <span className="text-xs font-mono text-gray-500 font-bold">[{oIdx + 1}]</span>
+                                      <span className="text-xs font-mono text-gray-500 font-bold flex-shrink-0">[{oIdx + 1}]</span>
                                       <input
                                         type="text"
                                         placeholder={`Alternativa ${String.fromCharCode(65 + oIdx)}...`}
@@ -1286,16 +1288,18 @@ export default function App() {
                                           updated[oIdx] = e.target.value;
                                           setNewQuestion(prev => ({ ...prev, options: updated }));
                                         }}
-                                        className="flex-grow bg-[#161b22] border border-[#30363d] p-1.5 rounded text-xs text-white focus:border-[#38bdf8] outline-none"
+                                        className="flex-grow min-w-0 bg-[#161b22] border border-[#30363d] p-1.5 rounded text-xs text-white focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 outline-none"
                                       />
-                                      <input
-                                        type="radio"
-                                        name="correctAnswerIndex"
-                                        checked={newQuestion.correctAnswerIndex === oIdx}
-                                        onChange={() => setNewQuestion(prev => ({ ...prev, correctAnswerIndex: oIdx }))}
-                                        className="accent-[#238636] w-3.5 h-3.5 cursor-pointer"
-                                        title="Marcar como correcto"
-                                      />
+                                      <label className="flex items-center justify-center p-1 cursor-pointer select-none flex-shrink-0">
+                                        <input
+                                          type="radio"
+                                          name="correctAnswerIndex"
+                                          checked={newQuestion.correctAnswerIndex === oIdx}
+                                          onChange={() => setNewQuestion(prev => ({ ...prev, correctAnswerIndex: oIdx }))}
+                                          className="accent-[#238636] w-4.5 h-4.5 cursor-pointer flex-shrink-0"
+                                          title="Marcar como correcto"
+                                        />
+                                      </label>
                                     </div>
                                   ))}
                                   <span className="text-[9px] text-[#8b949e] font-mono block text-right italic font-bold">
@@ -1310,13 +1314,13 @@ export default function App() {
                                     value={newQuestion.explanation}
                                     onChange={(e) => setNewQuestion(prev => ({ ...prev, explanation: e.target.value }))}
                                     placeholder="Ej: Se debe a que el kernel de Linux requiere la activación de forwarding..."
-                                    className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs text-gray-300 focus:border-[#38bdf8] outline-none font-sans"
+                                    className="w-full bg-[#161b22] border border-[#30363d] p-2 rounded text-xs text-gray-300 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 outline-none font-sans"
                                   />
                                 </div>
 
                                 <button
                                   type="submit"
-                                  className="w-full py-2 bg-[#238636] hover:bg-[#2eaa41] text-white font-mono font-bold rounded text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
+                                  className="w-full py-2 bg-[#238636] hover:bg-[#2eaa41] active:translate-y-px text-white font-mono font-bold rounded text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
                                 >
                                   <PlusCircle className="w-4 h-4" />
                                   <span>Agregar Reactivo al Pool</span>
@@ -1325,8 +1329,8 @@ export default function App() {
                             </div>
 
                             {/* Right side: Bank explorer and searcher */}
-                            <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-5 flex flex-col justify-between">
-                              <div className="space-y-3 flex-grow">
+                            <div className="bg-[#0d1117] border border-[#30363d] rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                              <div className="space-y-4 flex-grow">
                                 <div className="flex items-center justify-between border-b border-[#30363d] pb-2.5">
                                   <div className="flex items-center gap-2">
                                     <Search className="w-4 h-4 text-[#38bdf8]" />
@@ -1339,28 +1343,28 @@ export default function App() {
                                   </span>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                   <input
                                     type="text"
                                     placeholder="Filtrar por enunciado o código..."
                                     value={vaultSearchTerm}
                                     onChange={(e) => setVaultSearchTerm(e.target.value)}
-                                    className="flex-grow bg-[#161b22] border border-[#30363d] p-1.5 rounded text-xs font-mono text-white outline-none focus:border-[#38bdf8]"
+                                    className="flex-grow min-w-0 bg-[#161b22] border border-[#30363d] p-2 rounded text-xs font-mono text-white outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150"
                                   />
                                   <select
                                     value={vaultCategoryFilter}
                                     onChange={(e) => setVaultCategoryFilter(e.target.value as Category | "Todas")}
-                                    className="bg-[#161b22] border border-[#30363d] px-2 rounded text-xs font-mono text-gray-300 outline-none focus:border-[#38bdf8]"
+                                    className="sm:max-w-[200px] bg-[#161b22] border border-[#30363d] p-2 rounded text-xs font-mono text-gray-300 outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all duration-150 cursor-pointer"
                                   >
-                                    <option value="Todas">Todas</option>
+                                    <option value="Todas">Todas las categorías</option>
                                     {(Object.keys(CATEGORY_STYLES) as Category[]).map(cat => (
-                                      <option key={cat} value={cat}>{cat.split(" ")[0]}...</option>
+                                      <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                   </select>
                                 </div>
 
                                 {/* List of scrollable inspected list */}
-                                <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                                <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-800">
                                   {(loadedQuestions.length > 0 ? loadedQuestions : QUESTION_BANK)
                                     .filter(q => vaultCategoryFilter === "Todas" || q.category === vaultCategoryFilter)
                                     .filter(q => q.question.toLowerCase().includes(vaultSearchTerm.toLowerCase()) || (q.codeSnippet && q.codeSnippet.toLowerCase().includes(vaultSearchTerm.toLowerCase())))
@@ -1368,13 +1372,13 @@ export default function App() {
                                       const cstyle = CATEGORY_STYLES[q.category];
                                       return (
                                         <div key={`vault-q-${q.id}`} className="p-3 bg-[#161b22] border border-[#30363d]/70 rounded-lg text-xs space-y-2 hover:border-[#38bdf8]/50 transition-colors">
-                                          <div className="flex justify-between items-center text-[10px]">
+                                          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] pb-1.5 border-b border-[#30363d]/30">
                                             <span className="font-mono text-[#38bdf8] font-bold">ID: #{q.id}</span>
-                                            <div className="flex gap-1.5">
-                                              <span className={`px-1.5 py-0.2 rounded text-[8px] font-semibold uppercase ${cstyle.bg} ${cstyle.text}`}>
+                                            <div className="flex flex-wrap gap-1">
+                                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase ${cstyle.bg} ${cstyle.text}`}>
                                                 {q.category}
                                               </span>
-                                              <span className="px-1.5 py-0.2 rounded text-[8px] font-semibold uppercase bg-gray-800 text-gray-300 font-mono">
+                                              <span className="px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase bg-gray-800 text-gray-300 font-mono">
                                                 {q.difficulty}
                                               </span>
                                             </div>
@@ -1383,7 +1387,7 @@ export default function App() {
                                             {q.question}
                                           </p>
                                           {q.codeSnippet && (
-                                            <pre className="p-2 rounded bg-[#010409] text-emerald-400 font-mono text-[10px] overflow-x-auto border border-[#30363d]/50 max-h-20">
+                                            <pre className="p-2 rounded bg-[#010409] text-emerald-400 font-mono text-[10px] overflow-x-auto border border-[#30363d]/50 max-h-20 whitespace-pre">
                                               {q.codeSnippet}
                                             </pre>
                                           )}
@@ -1400,7 +1404,7 @@ export default function App() {
                                     })}
                                 </div>
                               </div>
-                              <div className="text-[9px] font-mono text-gray-500 mt-2 text-center pt-2 border-t border-[#30363d]/20">
+                              <div className="text-[9px] font-mono text-[#8b949e] mt-3 text-center pt-2 border-t border-[#30363d]/20">
                                 Central DevOps de Reactivos • Whitestack Académico
                               </div>
                             </div>
@@ -1632,167 +1636,327 @@ export default function App() {
           )}
 
           {/* Results dashboard view */}
-          {session && session.isCompleted && (
-            <motion.div
-              key="results-layout"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="w-full space-y-6"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                
-                {/* Visual score display card on the left */}
-                <div className="lg:col-span-5 bg-[#161b22] border border-[#30363d] rounded-xl p-6 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8]/5 to-transparent pointer-events-none" />
+          {session && session.isCompleted && (() => {
+            // Calcular dinámicamente el Seniority, descripciones y colores basados en el rendimiento real
+            let seniorityName = "Junior DevOps & Cloud Associate Practitioner";
+            let seniorityLevel = "Junior / Practitioner Inicial";
+            let seniorityDesc = "Apto para colaborar en células DevOps bajo supervisión de un líder técnico integrado. Demuestra comprensión conceptual básica de las herramientas del ecosistema.";
+            let seniorityColor = "text-red-400 border-red-500/30 bg-red-500/10";
+            let seniorityBadge = "🌱 JUNIOR DEVOPS";
+            let scoreTagColor = "stroke-[#da3633]";
 
-                  <div className="space-y-2 pt-2 pb-6">
-                    <span className="font-mono text-[10px] tracking-widest text-gray-500 uppercase block font-bold">
-                      EVALUACIÓN GLOBAL DE COMPETENCIA
-                    </span>
+            if (results.percentage >= 90) {
+              seniorityName = "Principal Cloud Architect & Infrastructure Lead";
+              seniorityLevel = "Staff / Principal DevOps";
+              seniorityDesc = "Maestría superior absoluta. Capacidad demostrada para liderar decisiones arquitectónicas multinivel, depuración profunda de kernel/redes Carrier-Class y modelado declarativo de alta fidelidad.";
+              seniorityColor = "text-emerald-400 border-emerald-500/30 bg-emerald-500/12";
+              seniorityBadge = "👑 PRINCIPAL / STAFF ARCHITECT";
+              scoreTagColor = "stroke-[#238636]";
+            } else if (results.percentage >= 75) {
+              seniorityName = "Senior DevOps Engineer & Automation Specialist";
+              seniorityLevel = "Senior DevOps Integration";
+              seniorityDesc = "Madurez técnica excelente con amplia autonomía de troubleshooting. Diseña automatización robusta, modelados eficientes y resolución estructural de eventos bajo presión.";
+              seniorityColor = "text-[#38bdf8] border-[#38bdf8]/35 bg-[#38bdf8]/12";
+              seniorityBadge = "🚀 SENIOR DEVOPS";
+              scoreTagColor = "stroke-[#38bdf8]";
+            } else if (results.percentage >= 50) {
+              seniorityName = "Mid-Level Cloud Infrastructure Engineer";
+              seniorityLevel = "DevOps Engineer Semi-Sénior";
+              seniorityDesc = "Base operativa general altamente solvente. Posee plena autonomía funcional en tareas típicas de despliegue, recomendándose reforzar análisis exhaustivo de bajo nivel.";
+              seniorityColor = "text-amber-400 border-amber-500/25 bg-amber-500/10";
+              seniorityBadge = "⚙️ MID DEVOPS";
+              scoreTagColor = "stroke-[#fbbf24]";
+            }
 
-                    <div className="relative inline-flex items-center justify-center p-3 mt-4">
-                      <svg className="w-40 h-40 transform -rotate-90">
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="70"
-                          className="stroke-[#30363d] fill-none"
-                          strokeWidth="11"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="70"
-                          className={`fill-none transition-all duration-1000 ${
-                            results.percentage >= 80
-                              ? "stroke-[#238636]"
-                              : results.percentage >= 60
-                              ? "stroke-[#38bdf8]"
-                              : "stroke-[#da3633]"
-                          }`}
-                          strokeWidth="11"
-                          strokeDasharray={439.8}
-                          strokeDashoffset={439.8 - (439.8 * results.percentage) / 100}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-mono font-bold text-white leading-none">
-                          {results.percentage}%
-                        </span>
-                        <span className="text-[10px] font-mono text-gray-500 mt-1">
-                          {results.correct} / {results.total} aciertos
-                        </span>
-                      </div>
+            // Dictamen Académico de la Cátedra Whitestack
+            let academicFeedback = "";
+            if (results.percentage >= 90) {
+              academicFeedback = "Desempeño soberbio con un dominio de excelencia en toda la matriz técnica oficial. Su perfil refleja un entendimiento integral de topologías Carrier-Class de alto nivel, orquestación avanzada de Kubernetes, automatización idempotente con Ansible y arquitecturas GitOps. Solicitud de certificación recomendada con distinción inmediata.";
+            } else if (results.percentage >= 75) {
+              academicFeedback = "Sólida aprobación técnica. El candidato demuestra alta resiliencia analítica para enfrentar eventos operacionales complejos. Capacidad nativa para organizar playbooks de Ansible robustos y administrar despliegues seguros sobre Kubernetes. Se le incentiva a investigar en microtunelización de kernel y SDN compleja.";
+            } else if (results.percentage >= 50) {
+              academicFeedback = "Evaluación superada con éxito operacional. Posee competencias sólidas de nivel medio, ideales para despliegues del día a día sobre entornos de nube. Para subir de escala técnica, se aconseja estructurar laboratorios prácticos profundizando en el control de fallas del plano de control rústico y virtualización.";
+            } else {
+              academicFeedback = "Nivel de formación en progreso. El resultado actual evidencia áreas de oportunidad significativas en el control de fallas del plano de control y virtualización. Es muy recomendable iniciar un plan de mentoría teórico-práctico exhaustivo y recrear los laboratorios didácticos oficiales.";
+            }
+
+            // Estadísticas adicionales
+            const totalIncorrect = results.total - results.correct;
+            const avgTimePerQuestion = results.total > 0 ? (session.totalDurationSeconds / results.total).toFixed(1) : "0";
+
+            // Secciones dinámicas de Fortalezas y Áreas Críticas basadas en porcentaje real por sección
+            const sortedStats = [...results.categoryStats].sort((a, b) => a.percentage - b.percentage);
+            const weakestStats = sortedStats.filter(s => s.total > 0 && s.percentage < 70).slice(0, 2);
+            const strongestStats = [...results.categoryStats].sort((a, b) => b.percentage - a.percentage).filter(s => s.total > 0 && s.percentage >= 75).slice(0, 2);
+
+            return (
+              <motion.div
+                key="results-layout"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="w-full space-y-6"
+              >
+                {/* 1. TOP BAR STATS CARDS */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                  <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col justify-between hover:border-gray-700 transition-all">
+                    <span className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Puntaje Final</span>
+                    <div className="mt-2.5 flex items-baseline gap-1">
+                      <span className="text-2xl font-mono font-bold text-white">{results.percentage}%</span>
+                      <span className="text-[10px] font-mono text-gray-400">efectividad</span>
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-[#30363d]">
-                    <div className="inline-block px-4 py-1.5 bg-[#010409] border border-[#30363d] rounded-full">
-                      <span className="text-xs font-mono font-bold text-white flex items-center justify-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-ping" />
-                        <span>Rango Técnico:</span>
-                        <span className={`font-mono text-[11px] font-bold ${
-                          results.percentage >= 85 ? "text-emerald-400" : results.percentage >= 65 ? "text-[#38bdf8]" : "text-red-400"
-                        }`}>
-                          {results.percentage >= 90
-                            ? "Architect Senior Integration"
-                            : results.percentage >= 75
-                            ? "Core Cloud Engineer"
-                            : results.percentage >= 50
-                            ? "SysAdmin Asociado Cloud"
-                            : "Junior DevOps No Certificado"}
-                        </span>
-                      </span>
+                  <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col justify-between hover:border-gray-700 transition-all">
+                    <span className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Aciertos vs Errores</span>
+                    <div className="mt-2.5 flex items-baseline gap-1.5">
+                      <span className="text-xl font-mono font-bold text-emerald-400">{results.correct} aciertos</span>
+                      <span className="text-xs font-mono text-gray-400">/</span>
+                      <span className="text-xs font-mono text-rose-400 font-bold">{totalIncorrect}</span>
                     </div>
+                  </div>
 
-                    <div className="bg-[#010409] border border-[#30363d] rounded-lg p-4 text-left">
-                      <span className="text-xs font-semibold text-emerald-400 font-mono block mb-1">
-                        👨‍🏫 Dictamen Académico del Catedrático:
-                      </span>
-                      <p className="text-xs leading-relaxed text-gray-400 italic font-mono">
-                        "{profQuote}"
-                      </p>
+                  <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col justify-between hover:border-gray-700 transition-all">
+                    <span className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Tiempo Empleado</span>
+                    <div className="mt-2.5 flex items-baseline gap-1">
+                      <span className="text-2xl font-mono font-bold text-sky-400">{formatTime(session.totalDurationSeconds)}</span>
+                      <span className="text-[10px] font-mono text-gray-500">seg/min</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col justify-between hover:border-gray-700 transition-all">
+                    <span className="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest block">Cadencia de Resolución</span>
+                    <div className="mt-2.5 flex items-baseline gap-1">
+                      <span className="text-2xl font-mono font-bold text-white">{avgTimePerQuestion}</span>
+                      <span className="text-[10px] font-mono text-gray-400">seg/pregunta</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Technical detailed bars chart on the right */}
-                <div className="lg:col-span-7 bg-[#161b22] border border-[#30363d] rounded-xl p-6 flex flex-col shadow-2xl justify-between">
-                  <div>
-                    <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider mb-2">
-                      DESGLOSE DE MÉTRICA DE HABILIDAD TÉCNICA
+                {/* 2. DENTRO DE LA EVALUACIÓN Y SENIORITY (BENTO BLOCKS) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  
+                  {/* Left Column: Radial score & Seniority Badge */}
+                  <div className="lg:col-span-5 bg-[#161b22] border border-[#30363d] rounded-xl p-6 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8]/5 to-transparent pointer-events-none" />
+
+                    <div className="space-y-2 pt-2">
+                      <span className="font-mono text-[9px] tracking-widest text-[#38bdf8] uppercase block font-bold">
+                        PUNTUACIÓN OBTENIDA EN SIMULACIÓN
+                      </span>
+
+                      <div className="relative inline-flex items-center justify-center p-3 mt-4">
+                        <svg className="w-36 h-36 transform -rotate-90">
+                          <circle
+                            cx="72"
+                            cy="72"
+                            r="62"
+                            className="stroke-[#30363d] fill-none"
+                            strokeWidth="10"
+                          />
+                          <circle
+                            cx="72"
+                            cy="72"
+                            r="62"
+                            className={`fill-none transition-all duration-1000 ${scoreTagColor}`}
+                            strokeWidth="10"
+                            strokeDasharray={389.5}
+                            strokeDashoffset={389.5 - (389.5 * results.percentage) / 100}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-3xl font-mono font-bold text-white leading-none">
+                            {results.percentage}%
+                          </span>
+                          <span className="text-[9px] font-mono text-gray-500 mt-1 uppercase">
+                            {results.correct} de {results.total} correctas
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 pt-6 border-t border-[#30363d] mt-5">
+                      <div className={`inline-block px-4 py-1.5 border rounded-full text-[10px] font-mono font-bold uppercase ${seniorityColor}`}>
+                        🎓 Nivel: {seniorityBadge}
+                      </div>
+
+                      <div className="space-y-1 text-center">
+                        <h4 className="text-sm font-semibold text-white leading-snug">
+                          {seniorityName}
+                        </h4>
+                        <p className="text-[11px] text-gray-400 font-mono italic">
+                          "{seniorityLevel}"
+                        </p>
+                      </div>
+
+                      <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-3.5 text-left text-[11px] leading-relaxed text-gray-400 font-mono">
+                        <p>{seniorityDesc}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Academic Feedback, Strengths vs Weaknesses */}
+                  <div className="lg:col-span-7 bg-[#161b22] border border-[#30363d] rounded-xl p-6 flex flex-col shadow-2xl justify-between">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2 pb-2.5 border-b border-[#30363d]">
+                        <Award className="w-5 h-5 text-[#38bdf8]" />
+                        <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider">
+                          DICTAMEN ACADÉMICO Y RETROALIMENTACIÓN
+                        </h3>
+                      </div>
+
+                      {/* Prof quote academic feedback style box */}
+                      <div className="bg-[#0d1117] border-l-4 border-[#38bdf8] rounded-r-xl p-4 space-y-2">
+                        <span className="text-[11px] font-mono font-bold text-[#38bdf8] block uppercase tracking-wider">
+                          COMITÉ DE CÁTEDRA WHITESTACK S.A.
+                        </span>
+                        <p className="text-xs leading-relaxed text-gray-200 italic font-mono">
+                          "{academicFeedback}"
+                        </p>
+                      </div>
+
+                      {/* Strengths and Weaknesses derived from categories */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        {/* Dynamic Strengths Badge Area */}
+                        <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-3.5 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-emerald-450 text-emerald-400">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-[11px] font-mono font-bold uppercase text-white">Fortalezas Destacadas</span>
+                          </div>
+                          {strongestStats.length > 0 ? (
+                            <ul className="space-y-1 text-[10px] font-mono text-gray-400">
+                              {strongestStats.map(s => (
+                                <li key={`strength-${s.category}`} className="flex items-center gap-1">
+                                  <span className="text-emerald-400 font-bold">✔</span>
+                                  <span>{s.category} ({s.percentage}%)</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-[10px] text-gray-500 font-mono italic">Ningún módulo superó el umbral autónomo (75%). Se aconseja estudio exhaustivo.</p>
+                          )}
+                        </div>
+
+                        {/* Dynamic Weaknesses/Recommended study area */}
+                        <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-3.5 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-amber-540 text-amber-400">
+                            <AlertOctagon className="w-4 h-4" />
+                            <span className="text-[11px] font-mono font-bold uppercase text-white">Áreas de Refuerzo Crítico</span>
+                          </div>
+                          {weakestStats.length > 0 ? (
+                            <ul className="space-y-1 text-[10px] font-mono text-rose-300">
+                              {weakestStats.map(s => (
+                                <li key={`weak-${s.category}`} className="flex items-center gap-1">
+                                  <span className="text-rose-400 font-bold">●</span>
+                                  <span>{s.category} ({s.percentage}%)</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-[10px] text-emerald-400 font-mono">¡Excelente desempeño! No se registran áreas por debajo del 70% de efectividad.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-[#30363d] mt-6 flex items-center justify-between text-[11px] font-mono text-gray-500">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#38bdf8]" />
+                        <span>DURACIÓN TOTAL REGISTRADA: {formatTime(session.totalDurationSeconds)}</span>
+                      </span>
+                      <span>GITOPS INTEGRITY CONFIRMED // SHIELD_v2</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. MULTI-COMPETENCY DETAILED BARS WITH INNER COMMENTS AND TIPS */}
+                <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6 shadow-2xl">
+                  <div className="border-b border-[#30363d] pb-3 mb-5">
+                    <h3 className="text-sm font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-[#38bdf8]" />
+                      <span>ANALÍTICA DE COMPETENCIA POR COMPUESTO TECNOLÓGICO</span>
                     </h3>
-                    <p className="text-xs text-gray-400 mb-6">
-                      Métricas de desempeño agrupadas según las variables del curriculum oficial Carrier-Class.
+                    <p className="text-xs text-gray-400 mt-1">
+                      Métricas de desempeño pormenorizadas basadas en las variables del curriculum oficial Carrier-Class.
                     </p>
                   </div>
 
-                  <div className="space-y-4 flex-grow justify-center flex flex-col">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {results.categoryStats.map((stat, idx) => {
                       const st = CATEGORY_STYLES[stat.category];
                       const CatIcon = st.icon;
 
+                      // Category specific recommendations
+                      let catTipComment = "Sin métricas de examinación suficientes.";
+                      if (stat.total > 0) {
+                        if (stat.percentage >= 80) {
+                          catTipComment = "🏆 ¡Dominio Destacado! Demuestra nivel de ingeniería superior listo para arquitecturas en producción.";
+                        } else if (stat.percentage >= 50) {
+                          catTipComment = "⚡ ¡Competencia Aceptable! Buen entendimiento del core. Se sugiere pulir y recrear escenarios complejos de fallas.";
+                        } else {
+                          catTipComment = "⚠️ ¡Atención Requerida! Brechas importantes. Se aconseja repasar la guía pedagógica oficial de Whitestack.";
+                        }
+                      }
+
                       return (
-                        <div key={`stat-bar-final-${idx}`} className="space-y-1.5 p-3 rounded-lg border border-[#30363d]/50 bg-[#0d1117]/35">
-                          <div className="flex justify-between items-center text-xs font-mono">
-                            <div className="flex items-center space-x-2 truncate">
-                              <div className={`p-1.5 rounded ${st.bg} ${st.text}`}>
-                                <CatIcon className="w-4 h-4" />
+                        <div key={`stat-bar-final-${idx}`} className="space-y-2 p-3.5 rounded-lg border border-[#30363d]/50 bg-[#0d1117]/35 flex flex-col justify-between hover:border-gray-700 transition-colors">
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center text-xs font-mono">
+                              <div className="flex items-center space-x-2 truncate">
+                                <div className={`p-1.5 rounded ${st.bg} ${st.text} flex-shrink-0`}>
+                                  <CatIcon className="w-4 h-4 animate-pulse" />
+                                </div>
+                                <span className="text-[#e6edf3] truncate text-xs font-semibold font-mono uppercase">{stat.category}</span>
                               </div>
-                              <span className="text-[#e6edf3] truncate text-xs font-semibold font-mono uppercase">{stat.category}</span>
+                              <div className="flex items-center space-x-2 flex-shrink-0">
+                                {stat.total > 0 ? (
+                                  <>
+                                    <span className="text-[10px] text-gray-500">({stat.correct}/{stat.total})</span>
+                                    <span className={`font-bold text-xs ${
+                                      stat.percentage >= 80
+                                        ? "text-[#238636]"
+                                        : stat.percentage >= 50
+                                        ? "text-[#38bdf8]"
+                                        : "text-[#da3633]"
+                                    }`}>{stat.percentage}%</span>
+                                  </>
+                                ) : (
+                                  <span className="text-[9px] text-gray-500 font-bold italic uppercase">OMITIDA</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-2">
+
+                            {/* Progress bar scale */}
+                            <div className="w-full bg-[#010409] border border-[#30363d] h-2.5 rounded-full overflow-hidden">
                               {stat.total > 0 ? (
-                                <>
-                                  <span className="text-[10px] text-gray-400">({stat.correct} / {stat.total})</span>
-                                  <span className={`font-bold text-xs ${
+                                <div
+                                  className={`h-full rounded-full transition-all duration-1000 ${
                                     stat.percentage >= 80
-                                      ? "text-[#238636]"
+                                      ? "bg-[#238636]"
                                       : stat.percentage >= 50
-                                      ? "text-[#38bdf8]"
-                                      : "text-[#da3633]"
-                                  }`}>{stat.percentage}%</span>
-                                </>
+                                      ? "bg-[#38bdf8]"
+                                      : "bg-[#da3633]"
+                                  }`}
+                                  style={{ width: `${stat.percentage}%` }}
+                                />
                               ) : (
-                                <span className="text-[10px] text-gray-500 font-bold italic">NO EVALUADO</span>
+                                <div className="h-full bg-gray-800 w-0" />
                               )}
                             </div>
                           </div>
 
-                          {/* Outer standard static bar visual */}
-                          <div className="w-full bg-[#010409] border border-[#30363d] h-2 rounded-full overflow-hidden">
-                            {stat.total > 0 ? (
-                              <div
-                                className={`h-full rounded-full transition-all duration-1000 ${
-                                  stat.percentage >= 80
-                                    ? "bg-[#238636]"
-                                    : stat.percentage >= 50
-                                    ? "bg-[#38bdf8]"
-                                    : "bg-[#da3633]"
-                                }`}
-                                style={{ width: `${stat.percentage}%` }}
-                              />
-                            ) : (
-                              <div className="h-full bg-gray-800 w-0" />
-                            )}
+                          {/* Individual Category specific dynamic comment feedback */}
+                          <div className="text-[10px] text-gray-400 font-mono italic leading-relaxed pt-1.5 border-t border-[#30363d]/30 mt-1">
+                            {catTipComment}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  <div className="border-t border-[#30363d] pt-4 mt-6 flex items-center justify-between text-[11px] font-mono text-gray-500">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#38bdf8]" />
-                      <span>DURACIÓN TOTAL REGISTRADA: {formatTime(session.totalDurationSeconds)}</span>
-                    </span>
-                    <span>GITOPS INTEGRITY CONFIRMED // SHIELD_v2</span>
-                  </div>
                 </div>
-              </div>
+
 
               {/* Advanced diagnostic review block */}
               <div className="bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl overflow-hidden">
@@ -1997,7 +2161,8 @@ export default function App() {
                 </button>
               </div>
             </motion.div>
-          )}
+          );
+        })()}
 
         </AnimatePresence>
       </main>
